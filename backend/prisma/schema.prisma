@@ -4,7 +4,7 @@
 // 特性: 完整约束、优化索引、数据验证、关系完整性
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
@@ -19,65 +19,115 @@ datasource db {
 // CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
 // ==============================================
+// 组织模型
+// ==============================================
+model Organization {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @db.VarChar(100)
+  slug        String   @unique @db.VarChar(50)
+  description String?  @db.Text
+  planType    String   @default("free") @map("plan_type") @db.VarChar(20) // "free", "pro", "enterprise"
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // 关联关系
+  users           User[]
+  funnels         Funnel[]
+  funnelTemplates FunnelTemplate[]
+  metricDatasets  MetricDataset[]
+  benchmarkData   BenchmarkData[]
+  adviceRules     AdviceRule[]
+  usageLimit      OrgUsageLimit?
+
+  @@index([slug])
+  @@index([planType])
+  @@index([isActive])
+  @@index([createdAt])
+  @@map("organizations")
+}
+
+// ==============================================
 // 用户账户模型
 // ==============================================
 model User {
-  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  username      String    @unique @db.VarChar(50)
-  email         String    @unique @db.VarChar(255)
-  passwordHash  String    @map("password_hash") @db.VarChar(255)
-  firstName     String?   @map("first_name") @db.VarChar(50)
-  lastName      String?   @map("last_name") @db.VarChar(50)
-  avatar        String?   @db.VarChar(500)
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
-  lastLoginAt   DateTime? @map("last_login_at") @db.Timestamptz(6)
-  isActive      Boolean   @default(true) @map("is_active")
-  isEmailVerified Boolean @default(false) @map("is_email_verified")
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  username        String    @unique @db.VarChar(50)
+  email           String    @unique @db.VarChar(255)
+  passwordHash    String    @map("password_hash") @db.VarChar(255)
+  firstName       String?   @map("first_name") @db.VarChar(50)
+  lastName        String?   @map("last_name") @db.VarChar(50)
+  avatar          String?   @db.VarChar(500)
+  organizationId  String?   @map("organization_id") @db.Uuid
+  role            UserRole  @default(member)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  lastLoginAt     DateTime? @map("last_login_at") @db.Timestamptz(6)
+  isActive        Boolean   @default(true) @map("is_active")
+  isEmailVerified Boolean   @default(false) @map("is_email_verified")
 
   // 关联关系
-  funnels     Funnel[]
-  aiSessions  AiSession[]
+  organization    Organization?    @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  funnels         Funnel[]
+  aiSessions      AiSession[]
+  funnelTemplates FunnelTemplate[]
+  metricDatasets  MetricDataset[]
+  adviceRules     AdviceRule[]
 
-  @@map("users")
   @@index([email])
   @@index([username])
+  @@index([organizationId])
+  @@index([role])
   @@index([createdAt])
   @@index([lastLoginAt])
   @@index([isActive])
   // 全文搜索索引
   @@index([username, firstName, lastName])
+  @@map("users")
+}
+
+// 用户角色枚举
+enum UserRole {
+  owner
+  admin
+  member
+
+  @@map("user_role")
 }
 
 // ==============================================
 // 漏斗模型
 // ==============================================
 model Funnel {
-  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId      String       @map("user_id") @db.Uuid
-  name        String       @db.VarChar(100)
-  description String?      @db.Text
-  canvasData  Json?        @map("canvas_data") @db.JsonB
-  status      FunnelStatus @default(active)
-  isTemplate  Boolean      @default(false) @map("is_template")
-  tags        String[]     @default([])
-  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  organizationId String?      @map("organization_id") @db.Uuid
+  name           String       @db.VarChar(100)
+  description    String?      @db.Text
+  canvasData     Json?        @map("canvas_data") @db.JsonB
+  status         FunnelStatus @default(active)
+  isTemplate     Boolean      @default(false) @map("is_template")
+  tags           String[]     @default([])
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // 关联关系
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  nodes      Node[]
-  edges      Edge[]
-  aiSessions AiSession[]
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  nodes        Node[]
+  edges        Edge[]
+  aiSessions   AiSession[]
 
-  @@map("funnels")
   @@index([userId])
+  @@index([organizationId])
   @@index([createdAt])
   @@index([name])
   @@index([status])
   @@index([isTemplate])
   @@index([tags])
   @@index([userId, status])
+  @@index([organizationId, status])
+  @@map("funnels")
 }
 
 // 漏斗状态枚举
@@ -93,25 +143,25 @@ enum FunnelStatus {
 // 节点模型
 // ==============================================
 model Node {
-  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  funnelId  String    @map("funnel_id") @db.Uuid
-  nodeType  NodeType  @map("node_type")
-  label     String    @default("新节点") @db.VarChar(30)
-  positionX Decimal   @map("position_x") @db.Decimal(10, 2)
-  positionY Decimal   @map("position_y") @db.Decimal(10, 2)
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  funnelId  String   @map("funnel_id") @db.Uuid
+  nodeType  NodeType @map("node_type")
+  label     String   @default("新节点") @db.VarChar(30)
+  positionX Decimal  @map("position_x") @db.Decimal(10, 2)
+  positionY Decimal  @map("position_y") @db.Decimal(10, 2)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // 关联关系
-  funnel       Funnel     @relation(fields: [funnelId], references: [id], onDelete: Cascade)
-  nodeData     NodeData[]
-  sourceEdges  Edge[]     @relation("SourceNode")
-  targetEdges  Edge[]     @relation("TargetNode")
+  funnel      Funnel     @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+  nodeData    NodeData[]
+  sourceEdges Edge[]     @relation("SourceNode")
+  targetEdges Edge[]     @relation("TargetNode")
 
-  @@map("nodes")
   @@index([funnelId])
   @@index([nodeType])
   @@index([positionX, positionY])
+  @@map("nodes")
 }
 
 // 节点类型枚举
@@ -141,11 +191,11 @@ model Edge {
   targetNode Node   @relation("TargetNode", fields: [targetNodeId], references: [id], onDelete: Cascade)
 
   @@unique([sourceNodeId, targetNodeId])
-  @@map("edges")
   @@index([funnelId])
   @@index([sourceNodeId])
   @@index([targetNodeId])
   @@index([sourceNodeId, targetNodeId])
+  @@map("edges")
 }
 
 // ==============================================
@@ -170,40 +220,40 @@ model NodeData {
   // 关联关系
   node Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
 
+  // 数据验证约束 (在应用层处理)
+  // entryCount >= 0 AND convertedCount >= 0 AND convertedCount <= entryCount
+
   @@unique([nodeId, weekStartDate])
-  @@map("node_data")
   @@index([nodeId])
   @@index([weekStartDate])
   @@index([createdAt])
   @@index([conversionRate])
   @@index([revenue])
   @@index([nodeId, weekStartDate, conversionRate])
-
-  // 数据验证约束 (在应用层处理)
-  // entryCount >= 0 AND convertedCount >= 0 AND convertedCount <= entryCount
+  @@map("node_data")
 }
 
 // ==============================================
 // AI 会话模型
 // ==============================================
 model AiSession {
-  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId         String       @map("user_id") @db.Uuid
-  funnelId       String?      @map("funnel_id") @db.Uuid
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String          @map("user_id") @db.Uuid
+  funnelId       String?         @map("funnel_id") @db.Uuid
   sessionContext SessionContext? @map("session_context")
-  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  endedAt        DateTime?    @map("ended_at") @db.Timestamptz(6)
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  endedAt        DateTime?       @map("ended_at") @db.Timestamptz(6)
 
   // 关联关系
   user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   funnel   Funnel?     @relation(fields: [funnelId], references: [id], onDelete: SetNull)
   messages AiMessage[]
 
-  @@map("ai_sessions")
   @@index([userId])
   @@index([createdAt])
   @@index([funnelId])
   @@index([sessionContext])
+  @@map("ai_sessions")
 }
 
 // AI 会话上下文枚举
@@ -228,10 +278,10 @@ model AiMessage {
   // 关联关系
   session AiSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
-  @@map("ai_messages")
   @@index([sessionId])
   @@index([createdAt])
   @@index([role])
+  @@map("ai_messages")
 }
 
 // 消息角色枚举
@@ -243,22 +293,164 @@ enum MessageRole {
 }
 
 // ==============================================
+// 漏斗模板模型
+// ==============================================
+model FunnelTemplate {
+  id             String   @id @default(cuid())
+  name           String   @db.VarChar(100)
+  description    String?  @db.Text
+  templateData   Json     @map("template_data") @db.JsonB
+  isDefault      Boolean  @default(false) @map("is_default")
+  organizationId String   @map("organization_id") @db.Uuid
+  createdBy      String   @map("created_by") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // 关联关系
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  creator      User         @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([createdBy])
+  @@index([isDefault])
+  @@index([createdAt])
+  @@index([name])
+  @@index([organizationId, isDefault])
+  @@map("funnel_templates")
+}
+
+// ==============================================
+// 指标数据集模型
+// ==============================================
+model MetricDataset {
+  id             String   @id @default(cuid())
+  name           String   @db.VarChar(100)
+  datasetType    String   @map("dataset_type") @db.VarChar(50) // "conversion", "engagement", "revenue" etc.
+  dataSource     String   @map("data_source") @db.VarChar(50) // "manual", "api", "import" etc.
+  config         Json     @db.JsonB // 数据源配置
+  organizationId String   @map("organization_id") @db.Uuid
+  createdBy      String   @map("created_by") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // 关联关系
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  creator      User         @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([createdBy])
+  @@index([datasetType])
+  @@index([dataSource])
+  @@index([createdAt])
+  @@index([organizationId, datasetType])
+  @@map("metric_datasets")
+}
+
+// ==============================================
+// 同行基准数据模型
+// ==============================================
+model BenchmarkData {
+  id             String   @id @default(cuid())
+  industry       String   @db.VarChar(100)
+  metricType     String   @map("metric_type") @db.VarChar(100)
+  metricName     String   @map("metric_name") @db.VarChar(100)
+  value          Decimal  @db.Decimal(12, 6)
+  percentile     Int // P10, P25, P50, P75, P90等
+  sampleSize     Int      @map("sample_size")
+  periodStart    DateTime @map("period_start") @db.Date
+  periodEnd      DateTime @map("period_end") @db.Date
+  organizationId String   @map("organization_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // 关联关系
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([industry, metricType, metricName, percentile, periodStart, periodEnd])
+  @@index([organizationId])
+  @@index([industry])
+  @@index([metricType])
+  @@index([metricName])
+  @@index([percentile])
+  @@index([periodStart, periodEnd])
+  @@index([industry, metricType, metricName])
+  @@map("benchmark_data")
+}
+
+// ==============================================
+// 建议规则模型
+// ==============================================
+model AdviceRule {
+  id             String   @id @default(cuid())
+  name           String   @db.VarChar(100)
+  description    String?  @db.Text
+  ruleType       String   @map("rule_type") @db.VarChar(50) // "conversion", "engagement", "revenue", "general"
+  conditions     Json     @db.JsonB // 触发条件
+  advice         Json     @db.JsonB // 建议内容
+  priority       Int      @default(1) // 优先级 1-10
+  isActive       Boolean  @default(true) @map("is_active")
+  organizationId String   @map("organization_id") @db.Uuid
+  createdBy      String   @map("created_by") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // 关联关系
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  creator      User         @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([createdBy])
+  @@index([ruleType])
+  @@index([priority])
+  @@index([isActive])
+  @@index([organizationId, ruleType, isActive])
+  @@map("advice_rules")
+}
+
+// ==============================================
+// 组织使用限制模型
+// ==============================================
+model OrgUsageLimit {
+  id               String   @id @default(cuid())
+  organizationId   String   @unique @map("organization_id") @db.Uuid
+  maxFunnels       Int      @default(10) @map("max_funnels")
+  maxTemplates     Int      @default(5) @map("max_templates")
+  maxUsers         Int      @default(5) @map("max_users")
+  currentFunnels   Int      @default(0) @map("current_funnels")
+  currentTemplates Int      @default(0) @map("current_templates")
+  currentUsers     Int      @default(0) @map("current_users")
+  planType         String   @default("free") @map("plan_type") @db.VarChar(20) // "free", "pro", "enterprise"
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // 关联关系
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([planType])
+  @@index([currentFunnels])
+  @@index([currentTemplates])
+  @@index([currentUsers])
+  @@map("org_usage_limits")
+}
+
+// ==============================================
 // 审计日志模型（可选）
 // ==============================================
 model AuditLog {
-  id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tableName String     @map("table_name") @db.VarChar(50)
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tableName String    @map("table_name") @db.VarChar(50)
   operation Operation
-  oldValues Json?      @map("old_values") @db.JsonB
-  newValues Json?      @map("new_values") @db.JsonB
-  userId    String?    @map("user_id") @db.Uuid
-  timestamp DateTime   @default(now()) @db.Timestamptz(6)
+  oldValues Json?     @map("old_values") @db.JsonB
+  newValues Json?     @map("new_values") @db.JsonB
+  userId    String?   @map("user_id") @db.Uuid
+  timestamp DateTime  @default(now()) @db.Timestamptz(6)
 
-  @@map("audit_log")
   @@index([tableName])
   @@index([timestamp])
   @@index([userId])
   @@index([operation])
+  @@map("audit_log")
 }
 
 // 审计操作枚举

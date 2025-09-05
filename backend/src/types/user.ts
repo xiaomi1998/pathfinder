@@ -1,10 +1,13 @@
 import { User } from '@prisma/client';
+import { UserRole } from './organization';
 
 // 用户创建输入类型
 export interface CreateUserInput {
   username: string;
   email: string;
   password: string;
+  organizationId?: string;
+  role?: UserRole;
 }
 
 // 用户更新输入类型
@@ -12,6 +15,11 @@ export interface UpdateUserInput {
   username?: string;
   email?: string;
   password?: string;
+  firstName?: string;
+  lastName?: string;
+  avatar?: string;
+  organizationId?: string;
+  role?: UserRole;
   isActive?: boolean;
 }
 

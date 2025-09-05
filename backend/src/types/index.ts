@@ -75,3 +75,4 @@ export * from './funnel';
 export * from './node';
 export * from './edge';
 export * from './ai';
+export * from './organization';
