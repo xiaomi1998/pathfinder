@@ -41,6 +41,8 @@ export interface JwtPayload {
   userId: string;
   username: string;
   email: string;
+  organizationId?: string;
+  role?: string;
   iat?: number;
   exp?: number;
 }
@@ -58,6 +60,8 @@ export interface RequestUser {
   id: string;
   username: string;
   email: string;
+  organizationId?: string;
+  role?: string;
 }
 
 // Express Request 扩展

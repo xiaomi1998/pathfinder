@@ -4,16 +4,19 @@ import { PrismaClient } from '@prisma/client';
 import { LoginInput, RegisterInput, LoginResponse, UserResponse, JwtPayload, PasswordResetPayload } from '@/types';
 import { ApiError } from '@/utils/ApiError';
 import { logger } from '@/utils/logger';
+import { OrganizationService } from './OrganizationService';
 
 export class AuthService {
   private prisma: PrismaClient;
   private jwtSecret: string;
   private jwtExpiresIn: string;
+  private organizationService: OrganizationService;
 
   constructor() {
     this.prisma = new PrismaClient();
     this.jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
     this.jwtExpiresIn = process.env.JWT_EXPIRES_IN || '7d';
+    this.organizationService = new OrganizationService();
   }
 
   async register(data: RegisterInput): Promise<LoginResponse> {
@@ -68,37 +71,53 @@ export class AuthService {
         }
       });
 
-      logger.info(`新用户注册: ${username} (${email})`);
+      // 创建默认组织并将用户设置为owner
+      const organization = await this.organizationService.createDefaultOrganization(
+        `${name}的团队`,
+        user.id
+      );
 
-      // 生成 JWT
+      // 重新获取用户信息以包含组织ID和角色
+      const updatedUser = await this.prisma.user.findUniqueOrThrow({
+        where: { id: user.id }
+      });
+
+      logger.info(`新用户注册: ${username} (${email}) with organization: ${organization.name}`);
+
+      // 生成 JWT（包含组织信息）
       const token = this.generateToken({
         userId: user.id,
         username: user.username,
-        email: user.email
+        email: user.email,
+        organizationId: organization.id,
+        role: updatedUser.role
       });
 
       const userResponse: UserResponse = {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        avatar: user.avatar,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-        lastLoginAt: user.lastLoginAt,
-        isActive: user.isActive,
-        isEmailVerified: user.isEmailVerified,
+        id: updatedUser.id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        avatar: updatedUser.avatar,
+        organizationId: updatedUser.organizationId,
+        role: updatedUser.role,
+        createdAt: updatedUser.createdAt,
+        updatedAt: updatedUser.updatedAt,
+        lastLoginAt: updatedUser.lastLoginAt,
+        isActive: updatedUser.isActive,
+        isEmailVerified: updatedUser.isEmailVerified,
         name: name // 直接使用传入的name
       };
 
-      // 前端期望的格式
+      // 前端期望的格式，包含组织信息
       return {
         user: userResponse,
+        organization: organization,
         access_token: token,
         refresh_token: token, // 简化处理，使用相同token
         expires_in: this.getTokenExpiresIn()
-      };
+      } as any;
     } catch (error) {
       logger.error('用户注册失败:', error);
       throw new ApiError('注册失败，请稍后重试', 500);
@@ -141,7 +160,9 @@ export class AuthService {
       const token = this.generateToken({
         userId: user.id,
         username: user.username,
-        email: user.email
+        email: user.email,
+        organizationId: user.organizationId,
+        role: user.role
       });
 
       const userResponse: UserResponse = {

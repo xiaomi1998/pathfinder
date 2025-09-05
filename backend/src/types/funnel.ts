@@ -1,5 +1,7 @@
 import { Funnel, Node, Edge } from '@prisma/client';
 
+export { Funnel };
+
 // 漏斗创建输入类型
 export interface CreateFunnelInput {
   name: string;
@@ -81,4 +83,78 @@ export interface CanvasEdge {
   target: string;
   type?: string;
   data?: any;
+}
+
+// ==============================================
+// Funnel Template Types
+// ==============================================
+
+// 漏斗模板数据类型
+export interface FunnelTemplateData {
+  nodes: CanvasNode[];
+  edges: CanvasEdge[];
+  viewport: {
+    x: number;
+    y: number;
+    zoom: number;
+  };
+  version: string;
+  metadata?: {
+    description?: string;
+    tags?: string[];
+    createdWith?: string;
+    [key: string]: any;
+  };
+}
+
+// 创建漏斗模板输入类型
+export interface CreateFunnelTemplateRequest {
+  name: string;
+  description?: string;
+  templateData: FunnelTemplateData;
+  isDefault?: boolean;
+}
+
+// 更新漏斗模板输入类型
+export interface UpdateFunnelTemplateRequest {
+  name?: string;
+  description?: string;
+  templateData?: FunnelTemplateData;
+  isDefault?: boolean;
+}
+
+// 漏斗模板响应类型
+export interface FunnelTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  templateData: FunnelTemplateData;
+  isDefault: boolean;
+  organizationId: string;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+  // 关联数据
+  creator?: {
+    id: string;
+    username: string;
+    email: string;
+  };
+}
+
+// 漏斗模板列表响应类型
+export interface FunnelTemplateListItem {
+  id: string;
+  name: string;
+  description?: string;
+  isDefault: boolean;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+  nodeCount: number;
+  edgeCount: number;
+  creator?: {
+    id: string;
+    username: string;
+  };
 }

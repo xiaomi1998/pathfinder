@@ -32,7 +32,9 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       const user: RequestUser = {
         id: decoded.userId,
         username: decoded.username,
-        email: decoded.email
+        email: decoded.email,
+        organizationId: decoded.organizationId,
+        role: decoded.role
       };
       
       req.user = user;
@@ -88,7 +90,9 @@ export const optionalAuthMiddleware = async (req: Request, res: Response, next: 
         const user: RequestUser = {
           id: decoded.userId,
           username: decoded.username,
-          email: decoded.email
+          email: decoded.email,
+          organizationId: decoded.organizationId,
+          role: decoded.role
         };
         
         req.user = user;

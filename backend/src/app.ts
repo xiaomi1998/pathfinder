@@ -12,9 +12,12 @@ import dotenv from 'dotenv';
 import authRoutes from '@/routes/auth';
 import userRoutes from '@/routes/users';
 import funnelRoutes from '@/routes/funnels';
+import funnelTemplateRoutes from '@/routes/funnel-templates';
 import nodeRoutes from '@/routes/nodes';
 import edgeRoutes from '@/routes/edges';
 import aiRoutes from '@/routes/ai';
+import organizationRoutes from '@/routes/organizations';
+import metricDatasetRoutes from '@/routes/metric-datasets';
 
 // 导入中间件
 import { errorHandler } from '@/middleware/errorHandler';
@@ -142,11 +145,14 @@ app.get('/api/health', async (req, res) => {
 
 // API 路由
 app.use('/api/auth', authRoutes);
+app.use('/api/org', organizationRoutes);
 app.use('/api/users', authMiddleware, userRoutes);
 app.use('/api/funnels', authMiddleware, funnelRoutes);
+app.use('/api/funnel-templates', authMiddleware, funnelTemplateRoutes);
 app.use('/api/nodes', authMiddleware, nodeRoutes);
 app.use('/api/edges', authMiddleware, edgeRoutes);
 app.use('/api/ai', authMiddleware, aiRoutes);
+app.use('/api/metric-datasets', metricDatasetRoutes);
 
 // API 根路径
 app.get('/api', (req, res) => {
@@ -155,11 +161,14 @@ app.get('/api', (req, res) => {
     version: '1.0.0',
     endpoints: {
       auth: '/api/auth',
+      organizations: '/api/org',
       users: '/api/users',
       funnels: '/api/funnels',
+      funnelTemplates: '/api/funnel-templates',
       nodes: '/api/nodes',
       edges: '/api/edges',
       ai: '/api/ai',
+      metricDatasets: '/api/metric-datasets',
       health: '/health'
     }
   });

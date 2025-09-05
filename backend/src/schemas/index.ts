@@ -1,6 +1,7 @@
 // 导出所有验证 schemas
 export * from './auth';
 export * from './node';
+export * from './metricDataset';
 
 // 导出各模块特定的 schemas，重命名重复的 uuidParamSchema
 export * from './funnel';

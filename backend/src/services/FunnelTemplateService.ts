@@ -1,8 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 import { 
   FunnelTemplate,
+  FunnelTemplateListItem,
   CreateFunnelTemplateRequest,
-  UpdateFunnelTemplateRequest
+  UpdateFunnelTemplateRequest,
+  FunnelTemplateData
 } from '@/types';
 import { ApiError } from '@/utils/ApiError';
 import { logger } from '@/utils/logger';
@@ -23,16 +25,61 @@ export class FunnelTemplateService {
     data: CreateFunnelTemplateRequest
   ): Promise<FunnelTemplate> {
     try {
-      // TODO: 实现模板创建逻辑
-      // - 验证用户权限
-      // - 检查模板数量限制
-      // - 验证模板数据格式
-      // - 处理默认模板逻辑
-      
       logger.info(`Creating funnel template: ${data.name} for organization: ${organizationId}`);
-      throw new Error('Not implemented yet');
+      
+      // 验证模板数据格式
+      if (!this.validateTemplateData(data.templateData)) {
+        throw new ApiError('模板数据格式无效', 400);
+      }
+
+      // 检查是否已存在模板 (每个组织只能有一个模板)
+      const existingTemplate = await this.prisma.funnelTemplate.findFirst({
+        where: { organizationId }
+      });
+
+      if (existingTemplate) {
+        throw new ApiError('每个组织只能创建一个漏斗模板。请编辑现有模板或先删除现有模板。', 409);
+      }
+
+      // 创建模板
+      const template = await this.prisma.funnelTemplate.create({
+        data: {
+          name: data.name,
+          description: data.description,
+          templateData: data.templateData as any,
+          isDefault: data.isDefault || false,
+          organizationId,
+          createdBy
+        },
+        include: {
+          creator: {
+            select: {
+              id: true,
+              username: true,
+              email: true
+            }
+          }
+        }
+      });
+
+      // 更新组织使用限制计数器
+      await this.prisma.orgUsageLimit.upsert({
+        where: { organizationId },
+        update: { currentTemplates: { increment: 1 } },
+        create: {
+          organizationId,
+          currentTemplates: 1,
+          maxTemplates: 1 // 每个组织只能有一个模板
+        }
+      });
+
+      logger.info(`Successfully created funnel template: ${template.id}`);
+      return this.mapToFunnelTemplate(template);
     } catch (error) {
       logger.error('Error creating funnel template:', error);
+      if (error instanceof ApiError) {
+        throw error;
+      }
       throw new ApiError('创建漏斗模板失败', 500);
     }
   }
@@ -42,12 +89,29 @@ export class FunnelTemplateService {
    */
   async getTemplateById(id: string, organizationId: string): Promise<FunnelTemplate | null> {
     try {
-      // TODO: 实现获取模板详情逻辑
-      // - 验证组织权限
-      // - 返回模板数据
-      
       logger.info(`Getting funnel template: ${id}`);
-      throw new Error('Not implemented yet');
+      
+      const template = await this.prisma.funnelTemplate.findFirst({
+        where: {
+          id,
+          organizationId
+        },
+        include: {
+          creator: {
+            select: {
+              id: true,
+              username: true,
+              email: true
+            }
+          }
+        }
+      });
+
+      if (!template) {
+        return null;
+      }
+
+      return this.mapToFunnelTemplate(template);
     } catch (error) {
       logger.error('Error getting funnel template:', error);
       throw new ApiError('获取漏斗模板失败', 500);
@@ -64,15 +128,64 @@ export class FunnelTemplateService {
     data: UpdateFunnelTemplateRequest
   ): Promise<FunnelTemplate> {
     try {
-      // TODO: 实现模板更新逻辑
-      // - 验证权限（创建者或管理员）
-      // - 更新模板数据
-      // - 处理默认模板变更
-      
       logger.info(`Updating funnel template: ${id}`);
-      throw new Error('Not implemented yet');
+      
+      // 验证模板是否存在且属于该组织
+      const existingTemplate = await this.prisma.funnelTemplate.findFirst({
+        where: {
+          id,
+          organizationId
+        }
+      });
+
+      if (!existingTemplate) {
+        throw new ApiError('模板不存在或无权访问', 404);
+      }
+
+      // 验证用户权限（创建者或管理员）
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true }
+      });
+
+      if (existingTemplate.createdBy !== userId && user?.role !== 'admin' && user?.role !== 'owner') {
+        throw new ApiError('无权修改此模板', 403);
+      }
+
+      // 验证模板数据格式（如果提供）
+      if (data.templateData && !this.validateTemplateData(data.templateData)) {
+        throw new ApiError('模板数据格式无效', 400);
+      }
+
+      // 构建更新数据
+      const updateData: any = {};
+      if (data.name !== undefined) updateData.name = data.name;
+      if (data.description !== undefined) updateData.description = data.description;
+      if (data.templateData !== undefined) updateData.templateData = data.templateData;
+      if (data.isDefault !== undefined) updateData.isDefault = data.isDefault;
+
+      // 更新模板
+      const updatedTemplate = await this.prisma.funnelTemplate.update({
+        where: { id },
+        data: updateData,
+        include: {
+          creator: {
+            select: {
+              id: true,
+              username: true,
+              email: true
+            }
+          }
+        }
+      });
+
+      logger.info(`Successfully updated funnel template: ${id}`);
+      return this.mapToFunnelTemplate(updatedTemplate);
     } catch (error) {
       logger.error('Error updating funnel template:', error);
+      if (error instanceof ApiError) {
+        throw error;
+      }
       throw new ApiError('更新漏斗模板失败', 500);
     }
   }
@@ -82,116 +195,315 @@ export class FunnelTemplateService {
    */
   async deleteTemplate(id: string, organizationId: string, userId: string): Promise<void> {
     try {
-      // TODO: 实现模板删除逻辑
-      // - 验证权限
-      // - 检查模板是否被使用
-      // - 删除模板
-      
       logger.info(`Deleting funnel template: ${id}`);
-      throw new Error('Not implemented yet');
+      
+      // 验证模板是否存在且属于该组织
+      const existingTemplate = await this.prisma.funnelTemplate.findFirst({
+        where: {
+          id,
+          organizationId
+        }
+      });
+
+      if (!existingTemplate) {
+        throw new ApiError('模板不存在或无权访问', 404);
+      }
+
+      // 验证用户权限（创建者或管理员）
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true }
+      });
+
+      if (existingTemplate.createdBy !== userId && user?.role !== 'admin' && user?.role !== 'owner') {
+        throw new ApiError('无权删除此模板', 403);
+      }
+
+      // 删除模板
+      await this.prisma.funnelTemplate.delete({
+        where: { id }
+      });
+
+      // 更新组织使用限制计数器
+      await this.prisma.orgUsageLimit.update({
+        where: { organizationId },
+        data: { currentTemplates: { decrement: 1 } }
+      });
+
+      logger.info(`Successfully deleted funnel template: ${id}`);
     } catch (error) {
       logger.error('Error deleting funnel template:', error);
+      if (error instanceof ApiError) {
+        throw error;
+      }
       throw new ApiError('删除漏斗模板失败', 500);
     }
   }
 
   /**
-   * 获取组织的模板列表
+   * 获取组织的模板 (应该只有一个)
    */
-  async getTemplatesByOrganization(
-    organizationId: string, 
-    options: { 
-      page?: number; 
-      limit?: number; 
-      includeDefaults?: boolean;
-    } = {}
-  ): Promise<FunnelTemplate[]> {
+  async getOrganizationTemplate(organizationId: string): Promise<FunnelTemplate | null> {
     try {
-      // TODO: 实现获取模板列表逻辑
-      // - 分页支持
-      // - 可选包含默认模板
-      // - 按创建时间排序
+      logger.info(`Getting funnel template for organization: ${organizationId}`);
       
-      logger.info(`Getting funnel templates for organization: ${organizationId}`);
-      throw new Error('Not implemented yet');
+      const template = await this.prisma.funnelTemplate.findFirst({
+        where: { organizationId },
+        include: {
+          creator: {
+            select: {
+              id: true,
+              username: true,
+              email: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      if (!template) {
+        return null;
+      }
+
+      return this.mapToFunnelTemplate(template);
     } catch (error) {
-      logger.error('Error getting funnel templates:', error);
-      throw new ApiError('获取漏斗模板列表失败', 500);
+      logger.error('Error getting organization funnel template:', error);
+      throw new ApiError('获取漏斗模板失败', 500);
     }
   }
 
   /**
-   * 获取默认模板
+   * 获取或创建默认模板
    */
-  async getDefaultTemplate(organizationId: string): Promise<FunnelTemplate | null> {
+  async getOrCreateDefaultTemplate(organizationId: string, userId: string): Promise<FunnelTemplate> {
     try {
-      // TODO: 实现获取默认模板逻辑
-      // - 查找组织的默认模板
-      // - 如果没有则返回系统默认模板
+      logger.info(`Getting or creating default funnel template for organization: ${organizationId}`);
       
-      logger.info(`Getting default funnel template for organization: ${organizationId}`);
-      throw new Error('Not implemented yet');
+      // 先尝试获取现有模板
+      const existingTemplate = await this.getOrganizationTemplate(organizationId);
+      if (existingTemplate) {
+        return existingTemplate;
+      }
+
+      // 如果没有模板，创建默认四段式漏斗模板
+      const defaultTemplateData = this.createDefaultFunnelTemplate();
+      
+      return await this.createTemplate(organizationId, userId, {
+        name: '默认漏斗模板',
+        description: '系统自动生成的默认四段式漏斗模板',
+        templateData: defaultTemplateData,
+        isDefault: true
+      });
     } catch (error) {
-      logger.error('Error getting default funnel template:', error);
-      throw new ApiError('获取默认漏斗模板失败', 500);
+      logger.error('Error getting or creating default funnel template:', error);
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new ApiError('获取或创建默认漏斗模板失败', 500);
     }
   }
 
   /**
-   * 设置默认模板
+   * 设置模板为默认模板（在单模板系统中，组织的唯一模板就是默认模板）
    */
   async setDefaultTemplate(id: string, organizationId: string, userId: string): Promise<FunnelTemplate> {
     try {
-      // TODO: 实现设置默认模板逻辑
-      // - 验证权限
-      // - 取消之前的默认模板
-      // - 设置新的默认模板
-      
       logger.info(`Setting default funnel template: ${id} for organization: ${organizationId}`);
-      throw new Error('Not implemented yet');
+      
+      return await this.updateTemplate(id, organizationId, userId, {
+        isDefault: true
+      });
     } catch (error) {
       logger.error('Error setting default funnel template:', error);
+      if (error instanceof ApiError) {
+        throw error;
+      }
       throw new ApiError('设置默认漏斗模板失败', 500);
     }
   }
 
   /**
-   * 克隆模板
+   * 复制模板数据到漏斗 (不克隆模板，因为每个组织只能有一个模板)
    */
-  async cloneTemplate(
-    id: string, 
-    organizationId: string, 
-    createdBy: string, 
-    newName?: string
-  ): Promise<FunnelTemplate> {
+  async createFunnelFromTemplate(
+    templateId: string,
+    targetOrganizationId: string,
+    createdBy: string,
+    funnelName: string
+  ): Promise<{ templateData: FunnelTemplateData }> {
     try {
-      // TODO: 实现模板克隆逻辑
-      // - 验证源模板访问权限
-      // - 复制模板数据
-      // - 生成新的模板名称
+      logger.info(`Creating funnel from template: ${templateId}`);
       
-      logger.info(`Cloning funnel template: ${id}`);
-      throw new Error('Not implemented yet');
+      // 获取模板数据
+      const template = await this.getTemplateById(templateId, targetOrganizationId);
+      if (!template) {
+        throw new ApiError('模板不存在或无权访问', 404);
+      }
+
+      return {
+        templateData: template.templateData
+      };
     } catch (error) {
-      logger.error('Error cloning funnel template:', error);
-      throw new ApiError('克隆漏斗模板失败', 500);
+      logger.error('Error creating funnel from template:', error);
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new ApiError('从模板创建漏斗失败', 500);
     }
+  }
+
+  /**
+   * 创建默认四段式漏斗模板
+   */
+  private createDefaultFunnelTemplate(): FunnelTemplateData {
+    return {
+      nodes: [
+        {
+          id: 'awareness-node',
+          type: 'funnelNode',
+          position: { x: 100, y: 100 },
+          data: {
+            label: '认知阶段',
+            nodeType: 'awareness'
+          }
+        },
+        {
+          id: 'acquisition-node',
+          type: 'funnelNode',
+          position: { x: 100, y: 200 },
+          data: {
+            label: '获取阶段',
+            nodeType: 'acquisition'
+          }
+        },
+        {
+          id: 'activation-node',
+          type: 'funnelNode',
+          position: { x: 100, y: 300 },
+          data: {
+            label: '激活阶段',
+            nodeType: 'activation'
+          }
+        },
+        {
+          id: 'revenue-node',
+          type: 'funnelNode',
+          position: { x: 100, y: 400 },
+          data: {
+            label: '收入阶段',
+            nodeType: 'revenue'
+          }
+        }
+      ],
+      edges: [
+        {
+          id: 'awareness-to-acquisition',
+          source: 'awareness-node',
+          target: 'acquisition-node',
+          type: 'default'
+        },
+        {
+          id: 'acquisition-to-activation',
+          source: 'acquisition-node',
+          target: 'activation-node',
+          type: 'default'
+        },
+        {
+          id: 'activation-to-revenue',
+          source: 'activation-node',
+          target: 'revenue-node',
+          type: 'default'
+        }
+      ],
+      viewport: {
+        x: 0,
+        y: 0,
+        zoom: 1
+      },
+      version: '1.0',
+      metadata: {
+        description: '默认的四段式漏斗模板',
+        tags: ['default', 'four-stage'],
+        createdWith: 'system'
+      }
+    };
   }
 
   /**
    * 验证模板数据格式
    */
-  private validateTemplateData(templateData: any): boolean {
+  private validateTemplateData(templateData: FunnelTemplateData): boolean {
     try {
-      // TODO: 实现模板数据验证逻辑
-      // - 验证JSON结构
-      // - 验证必要字段
-      // - 验证数据类型
-      
+      // 检查基本结构
+      if (!templateData || typeof templateData !== 'object') {
+        return false;
+      }
+
+      // 检查必要字段
+      if (!Array.isArray(templateData.nodes) || !Array.isArray(templateData.edges)) {
+        return false;
+      }
+
+      if (!templateData.viewport || typeof templateData.viewport !== 'object') {
+        return false;
+      }
+
+      if (!templateData.version || typeof templateData.version !== 'string') {
+        return false;
+      }
+
+      // 检查节点结构
+      for (const node of templateData.nodes) {
+        if (!node.id || !node.type || !node.position || !node.data) {
+          return false;
+        }
+        if (typeof node.position.x !== 'number' || typeof node.position.y !== 'number') {
+          return false;
+        }
+        if (!node.data.label || !node.data.nodeType) {
+          return false;
+        }
+      }
+
+      // 检查连接结构
+      for (const edge of templateData.edges) {
+        if (!edge.id || !edge.source || !edge.target) {
+          return false;
+        }
+      }
+
+      // 检查视窗结构
+      const { viewport } = templateData;
+      if (typeof viewport.x !== 'number' || typeof viewport.y !== 'number' || typeof viewport.zoom !== 'number') {
+        return false;
+      }
+
       return true;
     } catch (error) {
       logger.error('Error validating template data:', error);
       return false;
     }
+  }
+
+  /**
+   * 映射数据库结果到响应类型
+   */
+  private mapToFunnelTemplate(template: any): FunnelTemplate {
+    return {
+      id: template.id,
+      name: template.name,
+      description: template.description,
+      templateData: template.templateData as FunnelTemplateData,
+      isDefault: template.isDefault,
+      organizationId: template.organizationId,
+      createdBy: template.createdBy,
+      createdAt: template.createdAt,
+      updatedAt: template.updatedAt,
+      creator: template.creator ? {
+        id: template.creator.id,
+        username: template.creator.username,
+        email: template.creator.email
+      } : undefined
+    };
   }
 }

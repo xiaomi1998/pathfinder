@@ -23,16 +23,53 @@ export class OrganizationService {
    */
   async createOrganization(data: CreateOrganizationRequest, createdBy: string): Promise<Organization> {
     try {
-      // TODO: 实现组织创建逻辑
-      // - 验证slug唯一性
-      // - 创建组织
-      // - 创建默认使用限制
-      // - 将创建者设置为owner角色
-      
-      logger.info(`Creating organization: ${data.name}`);
-      throw new Error('Not implemented yet');
+      // 验证slug唯一性
+      if (data.slug) {
+        const existingOrg = await this.prisma.organization.findUnique({
+          where: { slug: data.slug }
+        });
+        if (existingOrg) {
+          throw new ApiError('组织标识已被使用', 409);
+        }
+      }
+
+      // 创建组织
+      const organization = await this.prisma.organization.create({
+        data: {
+          name: data.name,
+          slug: data.slug,
+          description: data.description,
+          planType: data.planType || 'free',
+        }
+      });
+
+      // 创建默认使用限制
+      await this.prisma.orgUsageLimit.create({
+        data: {
+          organizationId: organization.id,
+          maxFunnels: organization.planType === 'free' ? 3 : 50,
+          maxTemplates: organization.planType === 'free' ? 2 : 20,
+          maxUsers: organization.planType === 'free' ? 3 : 25,
+          planType: organization.planType,
+        }
+      });
+
+      // 将创建者设置为owner角色
+      await this.prisma.user.update({
+        where: { id: createdBy },
+        data: {
+          organizationId: organization.id,
+          role: 'owner'
+        }
+      });
+
+      logger.info(`Organization created: ${organization.name} by user ${createdBy}`);
+      return organization;
     } catch (error) {
       logger.error('Error creating organization:', error);
+      if (error instanceof ApiError) {
+        throw error;
+      }
       throw new ApiError('创建组织失败', 500);
     }
   }
@@ -42,11 +79,48 @@ export class OrganizationService {
    */
   async getOrganizationById(id: string): Promise<OrganizationWithRelations | null> {
     try {
-      // TODO: 实现获取组织详情逻辑
-      // - 包含关联的用户、漏斗、模板等数据
-      
-      logger.info(`Getting organization: ${id}`);
-      throw new Error('Not implemented yet');
+      const organization = await this.prisma.organization.findUnique({
+        where: { id },
+        include: {
+          users: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+              role: true,
+              isActive: true,
+              createdAt: true,
+              lastLoginAt: true,
+            }
+          },
+          usageLimit: true,
+          funnels: {
+            where: { status: 'active' },
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              status: true,
+              createdAt: true,
+              updatedAt: true,
+            }
+          },
+          funnelTemplates: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              isDefault: true,
+              createdAt: true,
+            }
+          }
+        }
+      });
+
+      return organization;
     } catch (error) {
       logger.error('Error getting organization:', error);
       throw new ApiError('获取组织失败', 500);
@@ -58,14 +132,44 @@ export class OrganizationService {
    */
   async updateOrganization(id: string, data: UpdateOrganizationRequest): Promise<Organization> {
     try {
-      // TODO: 实现组织更新逻辑
-      // - 验证权限
-      // - 更新组织信息
-      
-      logger.info(`Updating organization: ${id}`);
-      throw new Error('Not implemented yet');
+      // 验证组织是否存在
+      const existingOrg = await this.prisma.organization.findUnique({
+        where: { id }
+      });
+
+      if (!existingOrg) {
+        throw new ApiError('组织不存在', 404);
+      }
+
+      // 如果更新slug，验证唯一性
+      if (data.slug && data.slug !== existingOrg.slug) {
+        const slugExists = await this.prisma.organization.findUnique({
+          where: { slug: data.slug }
+        });
+        if (slugExists) {
+          throw new ApiError('组织标识已被使用', 409);
+        }
+      }
+
+      // 更新组织信息
+      const updatedOrganization = await this.prisma.organization.update({
+        where: { id },
+        data: {
+          ...(data.name && { name: data.name }),
+          ...(data.slug && { slug: data.slug }),
+          ...(data.description !== undefined && { description: data.description }),
+          ...(data.planType && { planType: data.planType }),
+          ...(data.isActive !== undefined && { isActive: data.isActive }),
+        }
+      });
+
+      logger.info(`Organization updated: ${updatedOrganization.name} (${id})`);
+      return updatedOrganization;
     } catch (error) {
       logger.error('Error updating organization:', error);
+      if (error instanceof ApiError) {
+        throw error;
+      }
       throw new ApiError('更新组织失败', 500);
     }
   }
@@ -173,5 +277,41 @@ export class OrganizationService {
       logger.error('Error upgrading organization plan:', error);
       throw new ApiError('升级计划失败', 500);
     }
+  }
+
+  /**
+   * 创建简单组织（用于注册流程）
+   */
+  async createDefaultOrganization(name: string, createdBy: string): Promise<Organization> {
+    const slug = await this.generateUniqueSlug(name);
+    return this.createOrganization({ name, slug }, createdBy);
+  }
+
+  /**
+   * 生成唯一的组织slug
+   */
+  private async generateUniqueSlug(name: string): Promise<string> {
+    // 从名称生成基础slug
+    let baseSlug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9\u4e00-\u9fff]/g, '-') // 保留中文字符
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    // 如果是中文名，使用前缀
+    if (/[\u4e00-\u9fff]/.test(baseSlug)) {
+      baseSlug = `org-${Date.now()}`;
+    }
+
+    let slug = baseSlug;
+    let counter = 1;
+
+    // 检查slug是否已存在
+    while (await this.prisma.organization.findUnique({ where: { slug } })) {
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+
+    return slug;
   }
 }

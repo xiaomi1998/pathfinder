@@ -1,5 +1,5 @@
 import { User } from './user';
-import { Funnel } from './funnel';
+import { Funnel, FunnelTemplate } from './funnel';
 
 // 组织用户角色枚举
 export enum UserRole {
@@ -55,34 +55,6 @@ export interface UpdateOrganizationRequest {
   isActive?: boolean;
 }
 
-// 漏斗模板类型
-export interface FunnelTemplate {
-  id: string;
-  name: string;
-  description?: string;
-  templateData: any; // JSON data for funnel structure
-  isDefault: boolean;
-  organizationId: string;
-  createdBy: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// 创建漏斗模板请求类型
-export interface CreateFunnelTemplateRequest {
-  name: string;
-  description?: string;
-  templateData: any;
-  isDefault?: boolean;
-}
-
-// 更新漏斗模板请求类型
-export interface UpdateFunnelTemplateRequest {
-  name?: string;
-  description?: string;
-  templateData?: any;
-  isDefault?: boolean;
-}
 
 // 指标数据集类型
 export interface MetricDataset {
@@ -105,12 +77,80 @@ export interface CreateMetricDatasetRequest {
   config: any;
 }
 
+// 扩展的指标数据集类型，包含漏斗数据
+export interface MetricDatasetWithFunnelData extends MetricDataset {
+  funnelData?: FunnelMetricData;
+  analysis?: AnalysisResult;
+}
+
 // 更新指标数据集请求类型
 export interface UpdateMetricDatasetRequest {
   name?: string;
   datasetType?: string;
   dataSource?: string;
   config?: any;
+}
+
+// 漏斗阶段数据类型
+export interface FunnelStageData {
+  visitors: number;
+  converted: number;
+  conversionRate?: number; // 自动计算
+}
+
+// 4阶段漏斗数据类型
+export interface FunnelMetricData {
+  stage_1: FunnelStageData; // 线索
+  stage_2: FunnelStageData; // 有效触达
+  stage_3: FunnelStageData; // 商机
+  stage_4: FunnelStageData; // 成交
+}
+
+// 漏斗数据集创建请求类型
+export interface CreateFunnelMetricDatasetRequest {
+  name: string;
+  description?: string;
+  stageData: FunnelMetricData;
+  industry?: string;
+  dataSource?: string;
+}
+
+// 分析结果类型
+export interface AnalysisResult {
+  id: string;
+  datasetId: string;
+  companyData: FunnelMetricData & {
+    overallConversionRate: number;
+    stageNames: string[];
+  };
+  benchmarkData: {
+    industry: string;
+    averageRates: FunnelMetricData;
+    percentiles: {
+      p25: FunnelMetricData;
+      p50: FunnelMetricData;
+      p75: FunnelMetricData;
+      p90: FunnelMetricData;
+    };
+  };
+  comparison: {
+    performanceGrade: 'A' | 'B' | 'C' | 'D' | 'F';
+    improvementPotential: {
+      stage_1: number;
+      stage_2: number;
+      stage_3: number;
+      stage_4: number;
+    };
+    recommendations: string[];
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// 获取分析数据的查询参数
+export interface AnalysisQueryParams {
+  includeBenchmarks?: boolean;
+  includeSuggestions?: boolean;
 }
 
 // 基准数据类型

@@ -1,6 +1,8 @@
 import { User } from '@prisma/client';
 import { UserRole } from './organization';
 
+export { User };
+
 // 用户创建输入类型
 export interface CreateUserInput {
   username: string;
