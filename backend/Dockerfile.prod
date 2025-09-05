@@ -1,0 +1,177 @@
+# Pathfinder Backend Production Dockerfile
+# 多阶段构建 + PM2 进程管理 + 安全优化
+
+# ====================
+# 构建阶段
+# ====================
+FROM node:18-alpine AS builder
+
+# 安装构建工具
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    openssl-dev \
+    git
+
+# 设置工作目录
+WORKDIR /app
+
+# 复制 package 文件
+COPY package*.json ./
+COPY prisma/ ./prisma/
+
+# 安装所有依赖（包括开发依赖）
+RUN npm ci --no-audit --no-fund
+
+# 生成 Prisma 客户端
+RUN npx prisma generate
+
+# 复制源代码
+COPY . .
+
+# 构建 TypeScript
+RUN npm run build
+
+# 删除开发依赖，仅保留生产依赖
+RUN npm prune --production --no-audit --no-fund
+
+# ====================
+# 生产阶段
+# ====================
+FROM node:18-alpine
+
+# 设置构建参数
+ARG NODE_ENV=production
+ARG BUILD_DATE
+ARG VERSION
+ARG GIT_COMMIT
+
+# 设置标签
+LABEL maintainer="Pathfinder Team <team@pathfinder.com>" \
+      org.opencontainers.image.title="Pathfinder Backend" \
+      org.opencontainers.image.description="Pathfinder Customer Journey Analytics Backend API" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${GIT_COMMIT}" \
+      org.opencontainers.image.source="https://github.com/pathfinder/backend"
+
+# 安装生产环境必要工具和安全更新
+RUN apk update && apk upgrade && apk add --no-cache \
+    curl \
+    wget \
+    dumb-init \
+    tzdata \
+    ca-certificates \
+    && rm -rf /var/cache/apk/* \
+    && update-ca-certificates
+
+# 设置时区
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# 创建应用用户和组（非 root 用户）
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S pathfinder -u 1001 -G nodejs
+
+# 全局安装 PM2
+RUN npm install -g pm2@latest --no-audit --no-fund
+
+# 设置工作目录
+WORKDIR /app
+
+# 复制构建产物和依赖（设置正确的所有者）
+COPY --from=builder --chown=pathfinder:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=pathfinder:nodejs /app/dist ./dist
+COPY --from=builder --chown=pathfinder:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=pathfinder:nodejs /app/package*.json ./
+
+# 复制 PM2 配置文件
+COPY --chown=pathfinder:nodejs ecosystem.config.js ./
+
+# 创建必要目录并设置权限
+RUN mkdir -p /app/logs /app/uploads /app/tmp /app/cache && \
+    chown -R pathfinder:nodejs /app && \
+    chmod -R 755 /app
+
+# 切换到应用用户
+USER pathfinder
+
+# 设置环境变量
+ENV NODE_ENV=${NODE_ENV} \
+    PORT=3000 \
+    NODE_OPTIONS="--max-old-space-size=1024 --optimize-for-size" \
+    UV_THREADPOOL_SIZE=128 \
+    NPM_CONFIG_PRODUCTION=true \
+    PM2_HOME=/app/.pm2
+
+# 创建 PM2 配置文件（如果不存在）
+RUN if [ ! -f ecosystem.config.js ]; then \
+    echo 'module.exports = {' > ecosystem.config.js && \
+    echo '  apps: [{' >> ecosystem.config.js && \
+    echo '    name: "pathfinder-backend",' >> ecosystem.config.js && \
+    echo '    script: "dist/app.js",' >> ecosystem.config.js && \
+    echo '    instances: process.env.NODE_ENV === "production" ? "max" : 1,' >> ecosystem.config.js && \
+    echo '    exec_mode: "cluster",' >> ecosystem.config.js && \
+    echo '    env: {' >> ecosystem.config.js && \
+    echo '      NODE_ENV: "development"' >> ecosystem.config.js && \
+    echo '    },' >> ecosystem.config.js && \
+    echo '    env_production: {' >> ecosystem.config.js && \
+    echo '      NODE_ENV: "production",' >> ecosystem.config.js && \
+    echo '      PORT: 3000' >> ecosystem.config.js && \
+    echo '    },' >> ecosystem.config.js && \
+    echo '    error_file: "logs/pm2-error.log",' >> ecosystem.config.js && \
+    echo '    out_file: "logs/pm2-out.log",' >> ecosystem.config.js && \
+    echo '    log_file: "logs/pm2-combined.log",' >> ecosystem.config.js && \
+    echo '    time: true,' >> ecosystem.config.js && \
+    echo '    max_memory_restart: "1G",' >> ecosystem.config.js && \
+    echo '    node_args: ["--max-old-space-size=1024"],' >> ecosystem.config.js && \
+    echo '    max_restarts: 10,' >> ecosystem.config.js && \
+    echo '    min_uptime: "10s",' >> ecosystem.config.js && \
+    echo '    autorestart: true,' >> ecosystem.config.js && \
+    echo '    watch: false' >> ecosystem.config.js && \
+    echo '  }]' >> ecosystem.config.js && \
+    echo '};' >> ecosystem.config.js; \
+    fi
+
+# 预热 PM2
+RUN pm2 ping
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
+
+# 暴露端口
+EXPOSE 3000 9090
+
+# 创建启动脚本
+RUN echo '#!/bin/sh' > /app/start.sh && \
+    echo 'set -e' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo '# 等待数据库连接' >> /app/start.sh && \
+    echo 'echo "Waiting for database connection..."' >> /app/start.sh && \
+    echo 'while ! wget --spider --quiet --tries=1 --timeout=5 "${DATABASE_URL%/*}" 2>/dev/null; do' >> /app/start.sh && \
+    echo '  echo "Database not ready, waiting..."' >> /app/start.sh && \
+    echo '  sleep 2' >> /app/start.sh && \
+    echo 'done' >> /app/start.sh && \
+    echo 'echo "Database connection established"' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo '# 运行数据库迁移（如果需要）' >> /app/start.sh && \
+    echo 'if [ "$RUN_MIGRATIONS" = "true" ]; then' >> /app/start.sh && \
+    echo '  echo "Running database migrations..."' >> /app/start.sh && \
+    echo '  npx prisma migrate deploy' >> /app/start.sh && \
+    echo 'fi' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo '# 启动 PM2' >> /app/start.sh && \
+    echo 'echo "Starting application with PM2..."' >> /app/start.sh && \
+    echo 'exec pm2-runtime start ecosystem.config.js --env production' >> /app/start.sh && \
+    chmod +x /app/start.sh
+
+# 启动脚本
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["/app/start.sh"]
+
+# 安全标签
+LABEL security.scan="true" \
+      security.non-root-user="true" \
+      security.readonly-rootfs="false"

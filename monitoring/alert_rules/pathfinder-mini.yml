@@ -1,0 +1,246 @@
+# ==========================================
+# Pathfinder Mini - 告警规则配置
+# ==========================================
+# 关键业务指标和系统健康监控告警
+
+groups:
+  # 系统资源告警
+  - name: system-alerts
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "高 CPU 使用率"
+          description: "实例 {{ $labels.instance }} CPU 使用率超过 80%，当前值: {{ $value }}%"
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "高内存使用率"
+          description: "实例 {{ $labels.instance }} 内存使用率超过 85%，当前值: {{ $value }}%"
+
+      - alert: LowDiskSpace
+        expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 90
+        for: 10m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "磁盘空间不足"
+          description: "实例 {{ $labels.instance }} 磁盘使用率超过 90%，当前值: {{ $value }}%"
+
+  # 数据库告警
+  - name: database-alerts
+    rules:
+      - alert: PostgreSQLDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "PostgreSQL 服务不可用"
+          description: "PostgreSQL 数据库服务已停止"
+
+      - alert: PostgreSQLTooManyConnections
+        expr: sum(pg_stat_activity_count) by (instance) > 180
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "PostgreSQL 连接数过高"
+          description: "PostgreSQL 连接数超过 180，当前值: {{ $value }}"
+
+      - alert: PostgreSQLSlowQuery
+        expr: pg_stat_activity_max_tx_duration > 300
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "PostgreSQL 慢查询"
+          description: "检测到运行超过 5 分钟的查询"
+
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: cache
+        annotations:
+          summary: "Redis 服务不可用"
+          description: "Redis 缓存服务已停止"
+
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          service: cache
+        annotations:
+          summary: "Redis 内存使用率过高"
+          description: "Redis 内存使用率超过 90%，当前值: {{ $value }}%"
+
+  # 应用服务告警
+  - name: application-alerts
+    rules:
+      - alert: BackendServiceDown
+        expr: up{job="pathfinder-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: backend
+        annotations:
+          summary: "后端服务不可用"
+          description: "Pathfinder 后端 API 服务已停止"
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) * 100 > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: "HTTP 错误率过高"
+          description: "5xx 错误率超过 10%，当前值: {{ $value }}%"
+
+      - alert: SlowResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: "响应时间过慢"
+          description: "95% 分位数响应时间超过 2 秒，当前值: {{ $value }}s"
+
+      - alert: HighRequestRate
+        expr: rate(http_requests_total[1m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: "请求速率过高"
+          description: "每秒请求数超过 100，当前值: {{ $value }}"
+
+  # Docker 容器告警
+  - name: container-alerts
+    rules:
+      - alert: ContainerKilled
+        expr: time() - container_last_seen > 60
+        for: 0m
+        labels:
+          severity: warning
+          service: docker
+        annotations:
+          summary: "容器被杀死"
+          description: "容器 {{ $labels.name }} 已消失超过 1 分钟"
+
+      - alert: ContainerCpuUsage
+        expr: (sum(rate(container_cpu_usage_seconds_total[3m])) BY (instance, name) * 100) > 80
+        for: 2m
+        labels:
+          severity: warning
+          service: docker
+        annotations:
+          summary: "容器 CPU 使用率过高"
+          description: "容器 {{ $labels.name }} CPU 使用率超过 80%"
+
+      - alert: ContainerMemoryUsage
+        expr: (sum(container_memory_working_set_bytes) BY (instance, name) / sum(container_spec_memory_limit_bytes > 0) BY (instance, name) * 100) > 80
+        for: 2m
+        labels:
+          severity: warning
+          service: docker
+        annotations:
+          summary: "容器内存使用率过高"
+          description: "容器 {{ $labels.name }} 内存使用率超过 80%"
+
+  # 业务指标告警
+  - name: business-alerts
+    rules:
+      - alert: LowUserActivity
+        expr: increase(pathfinder_user_logins_total[1h]) < 5
+        for: 1h
+        labels:
+          severity: info
+          service: business
+        annotations:
+          summary: "用户活动度低"
+          description: "过去 1 小时内登录用户数少于 5 个"
+
+      - alert: HighFunnelCreationRate
+        expr: rate(pathfinder_funnels_created_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: info
+          service: business
+        annotations:
+          summary: "漏斗创建速率异常"
+          description: "漏斗创建速率超过每分钟 10 个"
+
+      - alert: DatabaseConnectionPoolExhausted
+        expr: pathfinder_db_connections_active / pathfinder_db_connections_max > 0.9
+        for: 2m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "数据库连接池耗尽"
+          description: "数据库连接池使用率超过 90%"
+
+  # 网络和负载告警
+  - name: network-alerts
+    rules:
+      - alert: HighNetworkTraffic
+        expr: rate(node_network_receive_bytes_total[5m]) > 100000000  # 100MB/s
+        for: 5m
+        labels:
+          severity: warning
+          service: network
+        annotations:
+          summary: "网络流量过高"
+          description: "网络接收流量超过 100MB/s"
+
+      - alert: NginxDown
+        expr: up{job="nginx"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: nginx
+        annotations:
+          summary: "Nginx 服务不可用"
+          description: "Nginx 反向代理服务已停止"
+
+  # 日志和监控系统告警
+  - name: monitoring-alerts
+    rules:
+      - alert: PrometheusTargetDown
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: monitoring
+        annotations:
+          summary: "Prometheus 目标不可达"
+          description: "目标 {{ $labels.job }}/{{ $labels.instance }} 已停止响应超过 5 分钟"
+
+      - alert: LogVolumeHigh
+        expr: rate(loki_distributor_lines_received_total[5m]) > 1000
+        for: 5m
+        labels:
+          severity: info
+          service: logging
+        annotations:
+          summary: "日志量过高"
+          description: "日志接收速率超过每秒 1000 行"

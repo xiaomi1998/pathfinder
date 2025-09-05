@@ -1,0 +1,292 @@
+# Pathfinder 告警规则配置
+
+groups:
+  # ==========================================
+  # 基础设施告警
+  # ==========================================
+  - name: infrastructure
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: critical
+          team: devops
+        annotations:
+          summary: "实例 {{ $labels.instance }} 不可达"
+          description: "{{ $labels.job }} 的实例 {{ $labels.instance }} 已经停机超过 5 分钟"
+
+      - alert: HighCPUUsage
+        expr: (100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 80
+        for: 10m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "服务器 CPU 使用率过高"
+          description: "服务器 {{ $labels.instance }} 的 CPU 使用率已经超过 80% 持续 10 分钟"
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "服务器内存使用率过高"
+          description: "服务器 {{ $labels.instance }} 的内存使用率已经超过 85%"
+
+      - alert: DiskSpaceAlarm
+        expr: (node_filesystem_size_bytes{fstype!="tmpfs"} - node_filesystem_free_bytes{fstype!="tmpfs"}) / node_filesystem_size_bytes{fstype!="tmpfs"} * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "磁盘空间不足"
+          description: "{{ $labels.instance }} 的 {{ $labels.mountpoint }} 磁盘使用率已经超过 80%"
+
+      - alert: DiskSpaceCritical
+        expr: (node_filesystem_size_bytes{fstype!="tmpfs"} - node_filesystem_free_bytes{fstype!="tmpfs"}) / node_filesystem_size_bytes{fstype!="tmpfs"} * 100 > 90
+        for: 2m
+        labels:
+          severity: critical
+          team: devops
+        annotations:
+          summary: "磁盘空间严重不足"
+          description: "{{ $labels.instance }} 的 {{ $labels.mountpoint }} 磁盘使用率已经超过 90%"
+
+  # ==========================================
+  # 应用程序告警
+  # ==========================================
+  - name: application
+    rules:
+      - alert: PathfinderBackendDown
+        expr: up{job="pathfinder-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: development
+          service: backend
+        annotations:
+          summary: "Pathfinder 后端服务不可用"
+          description: "Pathfinder 后端服务已经停机超过 2 分钟"
+
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="pathfinder-backend"}[5m])) > 2
+        for: 10m
+        labels:
+          severity: warning
+          team: development
+          service: backend
+        annotations:
+          summary: "API 响应时间过高"
+          description: "Pathfinder API 95% 响应时间超过 2 秒，持续 10 分钟"
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) * 100 > 5
+        for: 5m
+        labels:
+          severity: warning
+          team: development
+          service: backend
+        annotations:
+          summary: "API 错误率过高"
+          description: "Pathfinder API 错误率超过 5%，当前值: {{ $value | humanizePercentage }}"
+
+      - alert: HighConnectionCount
+        expr: pathfinder_active_connections > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: development
+          service: backend
+        annotations:
+          summary: "活跃连接数过高"
+          description: "当前活跃连接数: {{ $value }}"
+
+  # ==========================================
+  # 数据库告警
+  # ==========================================
+  - name: database
+    rules:
+      - alert: PostgreSQLDown
+        expr: up{job="postgres-exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: database
+        annotations:
+          summary: "PostgreSQL 数据库不可用"
+          description: "PostgreSQL 数据库已经停机超过 2 分钟"
+
+      - alert: DatabaseConnectionHigh
+        expr: pg_stat_activity_count{state="active"} > 50
+        for: 5m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "数据库连接数过高"
+          description: "当前活跃连接数: {{ $value }}"
+
+      - alert: SlowQuery
+        expr: pg_stat_statements_mean_time_ms{query!~"^COMMIT|^ROLLBACK"} > 1000
+        for: 5m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "数据库慢查询检测"
+          description: "检测到平均执行时间超过 1 秒的查询"
+
+      - alert: DatabaseReplicationLag
+        expr: pg_replication_lag_seconds > 60
+        for: 5m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "数据库复制延迟"
+          description: "主从复制延迟超过 60 秒"
+
+  # ==========================================
+  # 缓存告警
+  # ==========================================
+  - name: cache
+    rules:
+      - alert: RedisDown
+        expr: up{job="redis-exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: devops
+        annotations:
+          summary: "Redis 缓存服务不可用"
+          description: "Redis 缓存服务已经停机超过 2 分钟"
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "Redis 内存使用率过高"
+          description: "Redis 内存使用率: {{ $value | humanizePercentage }}"
+
+      - alert: RedisCacheMissRate
+        expr: rate(redis_keyspace_misses_total[5m]) / rate(redis_keyspace_hits_total[5m]) > 0.3
+        for: 10m
+        labels:
+          severity: warning
+          team: development
+        annotations:
+          summary: "Redis 缓存命中率过低"
+          description: "缓存命中率低于 70%"
+
+  # ==========================================
+  # 网络和服务告警
+  # ==========================================
+  - name: network
+    rules:
+      - alert: WebsiteDown
+        expr: probe_success{job="blackbox-http"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: devops
+        annotations:
+          summary: "网站不可访问"
+          description: "{{ $labels.instance }} 网站已经不可访问超过 2 分钟"
+
+      - alert: SSLCertExpiringSoon
+        expr: probe_ssl_earliest_cert_expiry - time() < 30 * 24 * 3600
+        for: 1h
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "SSL 证书即将过期"
+          description: "{{ $labels.instance }} 的 SSL 证书将在 30 天内过期"
+
+      - alert: SSLCertExpired
+        expr: probe_ssl_earliest_cert_expiry - time() < 0
+        for: 1m
+        labels:
+          severity: critical
+          team: devops
+        annotations:
+          summary: "SSL 证书已过期"
+          description: "{{ $labels.instance }} 的 SSL 证书已经过期"
+
+  # ==========================================
+  # 业务指标告警
+  # ==========================================
+  - name: business
+    rules:
+      - alert: HighUserRegistrationFailure
+        expr: rate(user_registration_failures_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: development
+          service: auth
+        annotations:
+          summary: "用户注册失败率过高"
+          description: "过去 5 分钟用户注册失败率超过 10%"
+
+      - alert: LowFunnelCreationRate
+        expr: rate(funnel_creations_total[1h]) < 0.01
+        for: 2h
+        labels:
+          severity: warning
+          team: product
+        annotations:
+          summary: "漏斗创建频率过低"
+          description: "过去 2 小时漏斗创建频率异常低"
+
+      - alert: AIServiceUnavailable
+        expr: ai_service_success_rate < 0.95
+        for: 10m
+        labels:
+          severity: warning
+          team: development
+          service: ai
+        annotations:
+          summary: "AI 服务可用性降低"
+          description: "AI 服务成功率低于 95%: {{ $value | humanizePercentage }}"
+
+  # ==========================================
+  # 容器和 Kubernetes 告警
+  # ==========================================
+  - name: containers
+    rules:
+      - alert: ContainerCPUHigh
+        expr: rate(container_cpu_usage_seconds_total{name!=""}[5m]) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "容器 CPU 使用率过高"
+          description: "容器 {{ $labels.name }} 的 CPU 使用率超过 80%"
+
+      - alert: ContainerMemoryHigh
+        expr: container_memory_usage_bytes{name!=""} / container_spec_memory_limit_bytes * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "容器内存使用率过高"
+          description: "容器 {{ $labels.name }} 的内存使用率超过 80%"
+
+      - alert: ContainerRestart
+        expr: increase(container_restart_count{name!=""}[1h]) > 0
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "容器重启检测"
+          description: "容器 {{ $labels.name }} 在过去 1 小时内重启了 {{ $value }} 次"

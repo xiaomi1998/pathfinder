@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据流可视化系统测试</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        [v-cloak] { display: none; }
+        
+        /* Flow Animation Styles */
+        .flow-particle {
+            filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.3));
+            will-change: transform, opacity;
+        }
+        
+        .flow-intensity {
+            transition: all 0.3s ease;
+        }
+        
+        .pulse-ring {
+            filter: drop-shadow(0 0 8px currentColor);
+        }
+        
+        /* Analytics Overlay Styles */
+        .analytics-badge {
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
+        
+        .bottleneck-indicator {
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        
+        .bottleneck-indicator:hover {
+            transform: scale(1.1);
+        }
+        
+        /* Node and Edge Styles */
+        .funnel-node {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .funnel-node:hover {
+            filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.3));
+        }
+        
+        .funnel-node.selected {
+            filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.8));
+        }
+        
+        .connection-line {
+            stroke-width: 2;
+            fill: none;
+            transition: stroke 0.2s ease, stroke-width 0.2s ease;
+        }
+        
+        /* Heat Map */
+        .heat-cell {
+            transition: opacity 0.5s ease;
+        }
+        
+        /* Performance optimizations */
+        .flow-particle,
+        .flow-intensity,
+        .pulse-ring,
+        .analytics-badge,
+        .bottleneck-indicator {
+            will-change: transform, opacity;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 h-screen overflow-hidden">
+    <div id="app" v-cloak>
+        <!-- Header -->
+        <div class="bg-white border-b border-gray-200 px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-xl font-semibold text-gray-900">🚀 数据流可视化系统测试</h1>
+                    <p class="text-sm text-gray-600">实时数据流动画和分析覆盖层测试</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-gray-600">动画速度:</span>
+                        <input 
+                            v-model.number="animationSpeed" 
+                            type="range" 
+                            min="0.1" 
+                            max="3" 
+                            step="0.1"
+                            class="w-20"
+                            @input="updateAnimationSpeed"
+                        />
+                        <span class="text-xs text-gray-500">{{ animationSpeed.toFixed(1) }}x</span>
+                    </div>
+                    <button 
+                        @click="toggleAnimation" 
+                        :class="[
+                            'px-4 py-2 rounded-md text-sm font-medium transition-colors',
+                            isAnimating ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-green-600 text-white hover:bg-green-700'
+                        ]"
+                    >
+                        {{ isAnimating ? '暂停动画' : '开始动画' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex h-full">
+            <!-- Control Panel -->
+            <div class="w-80 bg-white border-r border-gray-200 p-6 overflow-y-auto">
+                <h3 class="font-medium text-gray-900 mb-4">🎛️ 可视化控制</h3>
+                
+                <!-- Animation Controls -->
+                <div class="space-y-4 mb-6">
+                    <h4 class="text-sm font-medium text-gray-800">流动画设置</h4>
+                    <div class="space-y-2">
+                        <label class="flex items-center justify-between text-xs">
+                            <span>显示流动强度</span>
+                            <input v-model="showFlowIntensity" type="checkbox" class="rounded">
+                        </label>
+                        <label class="flex items-center justify-between text-xs">
+                            <span>粒子数量</span>
+                            <input v-model.number="particleCount" type="range" min="1" max="10" class="w-16">
+                            <span class="text-gray-500">{{ particleCount }}</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Analytics Controls -->
+                <div class="space-y-4 mb-6">
+                    <h4 class="text-sm font-medium text-gray-800">分析显示</h4>
+                    <div class="space-y-2">
+                        <label class="flex items-center justify-between text-xs">
+                            <span>转化率徽章</span>
+                            <input v-model="showConversionRates" type="checkbox" class="rounded">
+                        </label>
+                        <label class="flex items-center justify-between text-xs">
+                            <span>流量指示器</span>
+                            <input v-model="showVolumeIndicators" type="checkbox" class="rounded">
+                        </label>
+                        <label class="flex items-center justify-between text-xs">
+                            <span>性能条</span>
+                            <input v-model="showPerformanceIndicators" type="checkbox" class="rounded">
+                        </label>
+                        <label class="flex items-center justify-between text-xs">
+                            <span>趋势图表</span>
+                            <input v-model="showTrendCharts" type="checkbox" class="rounded">
+                        </label>
+                        <label class="flex items-center justify-between text-xs">
+                            <span>热力图</span>
+                            <input v-model="showHeatMap" type="checkbox" class="rounded">
+                        </label>
+                        <label class="flex items-center justify-between text-xs">
+                            <span>瓶颈警告</span>
+                            <input v-model="showBottleneckAlerts" type="checkbox" class="rounded">
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Statistics -->
+                <div class="bg-blue-50 rounded-lg p-4 mb-6">
+                    <h4 class="font-medium text-blue-900 mb-2">📊 实时统计</h4>
+                    <div class="text-sm text-blue-800 space-y-1">
+                        <div><strong>节点:</strong> {{ nodes.length }}</div>
+                        <div><strong>连接:</strong> {{ edges.length }}</div>
+                        <div><strong>总流量:</strong> {{ totalVolume.toLocaleString() }}</div>
+                        <div><strong>整体转化率:</strong> {{ (overallConversionRate * 100).toFixed(1) }}%</div>
+                        <div><strong>瓶颈数量:</strong> {{ bottlenecks.length }}</div>
+                    </div>
+                </div>
+                
+                <!-- Test Controls -->
+                <div class="space-y-3">
+                    <h4 class="text-sm font-medium text-gray-800">测试场景</h4>
+                    <button 
+                        @click="loadEcommerceScenario" 
+                        class="w-full px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
+                    >
+                        📱 电商漏斗场景
+                    </button>
+                    <button 
+                        @click="loadSaasScenario" 
+                        class="w-full px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+                    >
+                        💼 SaaS 注册场景
+                    </button>
+                    <button 
+                        @click="loadContentScenario" 
+                        class="w-full px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm"
+                    >
+                        📰 内容消费场景
+                    </button>
+                    <button 
+                        @click="simulateRealTimeData" 
+                        class="w-full px-3 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 text-sm"
+                    >
+                        ⚡ 模拟实时数据
+                    </button>
+                </div>
+            </div>
+
+            <!-- Canvas Area -->
+            <div class="flex-1 relative bg-gray-50">
+                <svg id="canvas" class="w-full h-full">
+                    <defs>
+                        <!-- Arrow marker -->
+                        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="3" markerWidth="6" markerHeight="6" orient="auto" markerUnits="strokeWidth">
+                            <path d="M0,0 L0,6 L9,3 z" fill="#6b7280"/>
+                        </marker>
+                        
+                        <!-- Grid pattern -->
+                        <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e5e7eb" stroke-width="0.5" opacity="0.5"/>
+                        </pattern>
+                    </defs>
+
+                    <!-- Grid background -->
+                    <rect width="100%" height="100%" fill="url(#grid)"/>
+                    
+                    <!-- Main container -->
+                    <g id="container">
+                        <!-- Heat Map Layer (if enabled) -->
+                        <g v-if="showHeatMap" class="heat-map-layer">
+                            <rect
+                                v-for="cell in heatMapCells"
+                                :key="cell.id"
+                                :x="cell.x"
+                                :y="cell.y"
+                                :width="cell.size"
+                                :height="cell.size"
+                                :fill="cell.color"
+                                :opacity="cell.intensity * 0.3"
+                                class="heat-cell"
+                            />
+                        </g>
+                        
+                        <!-- Connection Lines with Flow Visualization -->
+                        <g class="edges">
+                            <g v-for="edge in edges" :key="edge.id" class="edge-group">
+                                <!-- Base connection line -->
+                                <path
+                                    :d="getEdgePath(edge)"
+                                    fill="none"
+                                    :stroke="getEdgeColor(edge)"
+                                    :stroke-width="getEdgeWidth(edge)"
+                                    marker-end="url(#arrow)"
+                                    class="connection-line"
+                                />
+                                
+                                <!-- Flow intensity overlay -->
+                                <path
+                                    v-if="showFlowIntensity && getFlowData(edge.id)"
+                                    :d="getEdgePath(edge)"
+                                    fill="none"
+                                    :stroke="getFlowColor(edge.id)"
+                                    :stroke-width="getFlowWidth(edge.id)"
+                                    :opacity="getFlowOpacity(edge.id)"
+                                    class="flow-intensity"
+                                />
+                                
+                                <!-- Animated particles -->
+                                <g v-if="isAnimating && getFlowData(edge.id)">
+                                    <circle
+                                        v-for="particle in getEdgeParticles(edge)"
+                                        :key="particle.id"
+                                        :r="particle.size"
+                                        :fill="particle.color"
+                                        :opacity="particle.opacity"
+                                        class="flow-particle"
+                                    >
+                                        <animateMotion
+                                            :dur="particle.duration"
+                                            :path="getEdgePath(edge)"
+                                            repeatCount="indefinite"
+                                            :begin="particle.delay"
+                                        />
+                                        <animate
+                                            attributeName="opacity"
+                                            :values="particle.opacityAnimation"
+                                            :dur="particle.duration"
+                                            repeatCount="indefinite"
+                                            :begin="particle.delay"
+                                        />
+                                    </circle>
+                                </g>
+                                
+                                <!-- Flow volume display -->
+                                <g v-if="showVolumeIndicators && getFlowData(edge.id)" class="flow-volume">
+                                    <rect
+                                        :x="getEdgeMidpoint(edge).x - 25"
+                                        :y="getEdgeMidpoint(edge).y - 10"
+                                        width="50"
+                                        height="20"
+                                        rx="10"
+                                        fill="rgba(59, 130, 246, 0.9)"
+                                        class="analytics-badge"
+                                    />
+                                    <text
+                                        :x="getEdgeMidpoint(edge).x"
+                                        :y="getEdgeMidpoint(edge).y + 2"
+                                        text-anchor="middle"
+                                        dominant-baseline="middle"
+                                        class="text-xs font-medium fill-white"
+                                    >
+                                        {{ formatNumber(getFlowData(edge.id).volume) }}
+                                    </text>
+                                </g>
+                            </g>
+                        </g>
+                        
+                        <!-- Nodes with Analytics -->
+                        <g class="nodes">
+                            <g
+                                v-for="node in nodes"
+                                :key="node.id"
+                                :class="['funnel-node', { selected: selectedNodeId === node.id }]"
+                                :transform="`translate(${node.position.x}, ${node.position.y})`"
+                                @click="selectNode(node.id)"
+                            >
+                                <!-- Node background -->
+                                <rect
+                                    width="120"
+                                    height="60"
+                                    rx="8"
+                                    :fill="getNodeColor(node.type)"
+                                    stroke="white"
+                                    :stroke-width="selectedNodeId === node.id ? 3 : 2"
+                                    class="node-body"
+                                />
+                                
+                                <!-- Node label -->
+                                <text
+                                    x="60"
+                                    y="30"
+                                    text-anchor="middle"
+                                    dominant-baseline="middle"
+                                    class="text-sm font-medium fill-white"
+                                >
+                                    {{ node.label }}
+                                </text>
+                                
+                                <!-- Node pulse effect for high activity -->
+                                <circle
+                                    v-if="isHighActivity(node.id)"
+                                    cx="60"
+                                    cy="30"
+                                    :r="30"
+                                    fill="none"
+                                    :stroke="getNodeColor(node.type)"
+                                    stroke-width="2"
+                                    opacity="0"
+                                    class="pulse-ring"
+                                >
+                                    <animate
+                                        attributeName="r"
+                                        values="30;50;30"
+                                        dur="2s"
+                                        repeatCount="indefinite"
+                                    />
+                                    <animate
+                                        attributeName="opacity"
+                                        values="0;0.8;0"
+                                        dur="2s"
+                                        repeatCount="indefinite"
+                                    />
+                                </circle>
+                            </g>
+                        </g>
+                        
+                        <!-- Analytics Overlays -->
+                        <g class="analytics-layer">
+                            <!-- Conversion rate badges -->
+                            <g v-if="showConversionRates" v-for="node in nodes" :key="`conversion-${node.id}`">
+                                <rect
+                                    :x="node.position.x + 70"
+                                    :y="node.position.y - 15"
+                                    width="48"
+                                    height="20"
+                                    rx="10"
+                                    :fill="getConversionRateColor(getNodeAnalytics(node.id).conversionRate)"
+                                    opacity="0.9"
+                                    class="analytics-badge"
+                                />
+                                <text
+                                    :x="node.position.x + 94"
+                                    :y="node.position.y - 2"
+                                    text-anchor="middle"
+                                    dominant-baseline="middle"
+                                    class="text-xs font-bold fill-white"
+                                >
+                                    {{ (getNodeAnalytics(node.id).conversionRate * 100).toFixed(0) }}%
+                                </text>
+                            </g>
+                            
+                            <!-- Volume indicators -->
+                            <g v-if="showVolumeIndicators" v-for="node in nodes" :key="`volume-${node.id}`">
+                                <circle
+                                    :cx="node.position.x + 135"
+                                    :cy="node.position.y + 30"
+                                    :r="getVolumeRadius(getNodeAnalytics(node.id).volume)"
+                                    :fill="getVolumeColor(getNodeAnalytics(node.id).volume)"
+                                    opacity="0.7"
+                                    class="analytics-badge"
+                                />
+                                <text
+                                    :x="node.position.x + 135"
+                                    :y="node.position.y + 30"
+                                    text-anchor="middle"
+                                    dominant-baseline="middle"
+                                    class="text-xs font-bold fill-white"
+                                >
+                                    {{ formatNumber(getNodeAnalytics(node.id).volume) }}
+                                </text>
+                            </g>
+                            
+                            <!-- Performance bars -->
+                            <g v-if="showPerformanceIndicators" v-for="node in nodes" :key="`performance-${node.id}`">
+                                <!-- Background bar -->
+                                <rect
+                                    :x="node.position.x"
+                                    :y="node.position.y + 65"
+                                    width="120"
+                                    height="4"
+                                    rx="2"
+                                    fill="rgba(0,0,0,0.1)"
+                                />
+                                <!-- Performance bar -->
+                                <rect
+                                    :x="node.position.x"
+                                    :y="node.position.y + 65"
+                                    :width="120 * getNodeAnalytics(node.id).performance"
+                                    height="4"
+                                    rx="2"
+                                    :fill="getPerformanceColor(getNodeAnalytics(node.id).performance)"
+                                    class="analytics-badge"
+                                />
+                            </g>
+                        </g>
+                        
+                        <!-- Bottleneck Indicators -->
+                        <g v-if="showBottleneckAlerts" class="bottleneck-layer">
+                            <g 
+                                v-for="bottleneck in visibleBottlenecks" 
+                                :key="`bottleneck-${bottleneck.nodeId}`"
+                                class="bottleneck-indicator"
+                                :transform="`translate(${bottleneck.position.x + 60}, ${bottleneck.position.y - 20})`"
+                                @click="showBottleneckDetails(bottleneck)"
+                            >
+                                <!-- Warning background -->
+                                <circle
+                                    r="12"
+                                    fill="#f59e0b"
+                                    stroke="white"
+                                    stroke-width="2"
+                                />
+                                <!-- Warning icon -->
+                                <path
+                                    d="M-6,-2 L6,-2 L0,8 Z M-1,0 L1,0 L1,4 L-1,4 Z M0,6 A1,1 0 1,1 0,6"
+                                    fill="white"
+                                />
+                                <!-- Severity ring -->
+                                <circle
+                                    r="16"
+                                    fill="none"
+                                    :stroke="getBottleneckColor(bottleneck.severity)"
+                                    stroke-width="2"
+                                    opacity="0.8"
+                                >
+                                    <animate
+                                        attributeName="stroke-width"
+                                        values="2;4;2"
+                                        dur="1.5s"
+                                        repeatCount="indefinite"
+                                    />
+                                </circle>
+                            </g>
+                        </g>
+                    </g>
+                </svg>
+                
+                <!-- Status Panel -->
+                <div class="absolute top-4 right-4 bg-white border border-gray-300 rounded-lg shadow-sm p-4 max-w-sm">
+                    <h4 class="font-medium text-gray-900 mb-2">🎯 系统状态</h4>
+                    <div class="text-sm space-y-1">
+                        <div class="flex justify-between">
+                            <span>动画状态:</span>
+                            <span :class="isAnimating ? 'text-green-600' : 'text-red-600'">
+                                {{ isAnimating ? '运行中' : '已暂停' }}
+                            </span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>FPS:</span>
+                            <span class="text-blue-600 font-mono">{{ fps.toFixed(1) }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>渲染时间:</span>
+                            <span class="text-purple-600 font-mono">{{ renderTime.toFixed(1) }}ms</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>内存使用:</span>
+                            <span class="text-orange-600">{{ memoryUsage }}MB</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Selected Node Details -->
+                <div v-if="selectedNodeDetails" class="absolute bottom-4 left-4 bg-white border border-gray-300 rounded-lg shadow-lg p-4 max-w-md">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="font-medium text-gray-900">📊 节点详情</h4>
+                        <button @click="selectedNodeDetails = null" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="space-y-2 text-sm">
+                        <div><strong>节点:</strong> {{ selectedNodeDetails.label }}</div>
+                        <div><strong>类型:</strong> {{ selectedNodeDetails.type }}</div>
+                        <div><strong>访问量:</strong> {{ selectedNodeDetails.analytics.volume.toLocaleString() }}</div>
+                        <div><strong>转化率:</strong> {{ (selectedNodeDetails.analytics.conversionRate * 100).toFixed(1) }}%</div>
+                        <div><strong>性能得分:</strong> {{ (selectedNodeDetails.analytics.performance * 100).toFixed(0) }}/100</div>
+                        <div v-if="selectedNodeDetails.analytics.avgTimeSpent">
+                            <strong>平均停留:</strong> {{ selectedNodeDetails.analytics.avgTimeSpent.toFixed(1) }}s
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted, onUnmounted } = Vue
+
+        createApp({
+            setup() {
+                // Reactive state
+                const nodes = ref([])
+                const edges = ref([])
+                const flowData = ref([])
+                const nodeAnalytics = ref({})
+                const bottlenecks = ref([])
+                const selectedNodeId = ref(null)
+                const selectedNodeDetails = ref(null)
+                
+                // Animation controls
+                const isAnimating = ref(true)
+                const animationSpeed = ref(1.0)
+                const particleCount = ref(5)
+                
+                // Visualization settings
+                const showFlowIntensity = ref(true)
+                const showConversionRates = ref(true)
+                const showVolumeIndicators = ref(true)
+                const showPerformanceIndicators = ref(true)
+                const showTrendCharts = ref(false)
+                const showHeatMap = ref(false)
+                const showBottleneckAlerts = ref(true)
+                
+                // Performance metrics
+                const fps = ref(60)
+                const renderTime = ref(0)
+                const memoryUsage = ref(0)
+                
+                // Computed properties
+                const totalVolume = computed(() => {
+                    return Object.values(nodeAnalytics.value).reduce((sum, analytics) => {
+                        return sum + (analytics.volume || 0)
+                    }, 0)
+                })
+                
+                const overallConversionRate = computed(() => {
+                    const analyticsArray = Object.values(nodeAnalytics.value)
+                    if (analyticsArray.length === 0) return 0
+                    
+                    const totalConversion = analyticsArray.reduce((sum, analytics) => {
+                        return sum + (analytics.conversionRate || 0)
+                    }, 0)
+                    
+                    return totalConversion / analyticsArray.length
+                })
+                
+                const visibleBottlenecks = computed(() => {
+                    return bottlenecks.value.filter(b => {
+                        const node = nodes.value.find(n => n.id === b.nodeId)
+                        return node && b.severity > 0.3
+                    })
+                })
+                
+                const heatMapCells = computed(() => {
+                    if (!showHeatMap.value) return []
+                    
+                    const cells = []
+                    const cellSize = 30
+                    const maxVolume = Math.max(...Object.values(nodeAnalytics.value).map(a => a.volume || 0))
+                    
+                    for (let x = 0; x < 1200; x += cellSize) {
+                        for (let y = 0; y < 800; y += cellSize) {
+                            const nearbyNodes = nodes.value.filter(node => {
+                                const distance = Math.sqrt(
+                                    Math.pow(node.position.x - x, 2) + Math.pow(node.position.y - y, 2)
+                                )
+                                return distance < 150
+                            })
+                            
+                            if (nearbyNodes.length > 0) {
+                                const totalVolume = nearbyNodes.reduce((sum, node) => {
+                                    return sum + (nodeAnalytics.value[node.id]?.volume || 0)
+                                }, 0)
+                                
+                                const intensity = totalVolume / maxVolume
+                                if (intensity > 0.1) {
+                                    cells.push({
+                                        id: `${x}-${y}`,
+                                        x,
+                                        y,
+                                        size: cellSize,
+                                        color: `hsl(${220 - intensity * 60}, 70%, 50%)`,
+                                        intensity
+                                    })
+                                }
+                            }
+                        }
+                    }
+                    
+                    return cells
+                })
+                
+                // Methods
+                const getNodeColor = (type) => {
+                    const colors = {
+                        start: '#10b981',
+                        action: '#8b5cf6',
+                        condition: '#f59e0b',
+                        conversion: '#10b981',
+                        end: '#ef4444'
+                    }
+                    return colors[type] || '#6b7280'
+                }
+                
+                const getEdgeColor = (edge) => {
+                    return '#6b7280'
+                }
+                
+                const getEdgeWidth = (edge) => {
+                    const flowData = getFlowData(edge.id)
+                    if (flowData) {
+                        return Math.max(2, Math.min(8, 2 + (flowData.volume / 500) * 4))
+                    }
+                    return 2
+                }
+                
+                const getEdgePath = (edge) => {
+                    const sourceNode = nodes.value.find(n => n.id === edge.source)
+                    const targetNode = nodes.value.find(n => n.id === edge.target)
+                    
+                    if (!sourceNode || !targetNode) return ''
+                    
+                    const sx = sourceNode.position.x + 120
+                    const sy = sourceNode.position.y + 30
+                    const tx = targetNode.position.x
+                    const ty = targetNode.position.y + 30
+                    
+                    const dx = tx - sx
+                    const dy = ty - sy
+                    const distance = Math.sqrt(dx * dx + dy * dy)
+                    
+                    const cp1x = sx + distance * 0.3
+                    const cp1y = sy
+                    const cp2x = tx - distance * 0.3
+                    const cp2y = ty
+                    
+                    return `M${sx},${sy} C${cp1x},${cp1y} ${cp2x},${cp2y} ${tx},${ty}`
+                }
+                
+                const getEdgeMidpoint = (edge) => {
+                    const sourceNode = nodes.value.find(n => n.id === edge.source)
+                    const targetNode = nodes.value.find(n => n.id === edge.target)
+                    
+                    if (!sourceNode || !targetNode) return { x: 0, y: 0 }
+                    
+                    return {
+                        x: (sourceNode.position.x + targetNode.position.x + 120) / 2,
+                        y: (sourceNode.position.y + targetNode.position.y + 60) / 2
+                    }
+                }
+                
+                const getFlowData = (edgeId) => {
+                    return flowData.value.find(f => f.edgeId === edgeId)
+                }
+                
+                const getFlowColor = (edgeId) => {
+                    const flow = getFlowData(edgeId)
+                    if (!flow) return '#e5e7eb'
+                    
+                    const colors = {
+                        user: '#3b82f6',
+                        conversion: '#10b981',
+                        event: '#f59e0b',
+                        error: '#ef4444'
+                    }
+                    return colors[flow.type] || '#6b7280'
+                }
+                
+                const getFlowWidth = (edgeId) => {
+                    const flow = getFlowData(edgeId)
+                    if (!flow) return 1
+                    return Math.max(2, Math.min(10, 2 + (flow.volume / 500) * 6))
+                }
+                
+                const getFlowOpacity = (edgeId) => {
+                    const flow = getFlowData(edgeId)
+                    if (!flow) return 0.1
+                    return Math.max(0.2, Math.min(0.8, flow.volume / 1000))
+                }
+                
+                const getEdgeParticles = (edge) => {
+                    const flow = getFlowData(edge.id)
+                    if (!flow) return []
+                    
+                    const count = Math.min(particleCount.value, Math.max(1, Math.floor(flow.volume / 200)))
+                    const particles = []
+                    
+                    for (let i = 0; i < count; i++) {
+                        const baseDelay = (i * 2) / animationSpeed.value
+                        const jitter = (Math.random() - 0.5) * 0.5
+                        
+                        particles.push({
+                            id: `${edge.id}-particle-${i}`,
+                            size: 2 + (flow.volume / 1000) * 3,
+                            color: getFlowColor(edge.id),
+                            opacity: 0.7 + Math.random() * 0.3,
+                            duration: `${4 / animationSpeed.value}s`,
+                            delay: `${baseDelay + jitter}s`,
+                            opacityAnimation: '0;1;1;1;0'
+                        })
+                    }
+                    
+                    return particles
+                }
+                
+                const getNodeAnalytics = (nodeId) => {
+                    return nodeAnalytics.value[nodeId] || {
+                        conversionRate: 0,
+                        volume: 0,
+                        performance: 0,
+                        avgTimeSpent: 0
+                    }
+                }
+                
+                const getConversionRateColor = (rate) => {
+                    if (rate >= 0.8) return '#10b981'
+                    if (rate >= 0.6) return '#f59e0b'
+                    if (rate >= 0.4) return '#f97316'
+                    return '#ef4444'
+                }
+                
+                const getVolumeRadius = (volume) => {
+                    return Math.max(8, Math.min(20, 8 + (volume / 1000) * 12))
+                }
+                
+                const getVolumeColor = (volume) => {
+                    const maxVolume = Math.max(...Object.values(nodeAnalytics.value).map(a => a.volume || 0))
+                    const intensity = volume / (maxVolume || 1)
+                    return `hsl(${200 + intensity * 60}, 70%, 50%)`
+                }
+                
+                const getPerformanceColor = (performance) => {
+                    if (performance >= 0.8) return '#10b981'
+                    if (performance >= 0.6) return '#f59e0b'
+                    if (performance >= 0.4) return '#f97316'
+                    return '#ef4444'
+                }
+                
+                const getBottleneckColor = (severity) => {
+                    if (severity >= 0.8) return '#dc2626'
+                    if (severity >= 0.6) return '#ef4444'
+                    if (severity >= 0.4) return '#f97316'
+                    return '#f59e0b'
+                }
+                
+                const isHighActivity = (nodeId) => {
+                    const analytics = getNodeAnalytics(nodeId)
+                    return analytics.volume > 1000
+                }
+                
+                const formatNumber = (value) => {
+                    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
+                    if (value >= 1000) return `${(value / 1000).toFixed(1)}K`
+                    return value.toString()
+                }
+                
+                const selectNode = (nodeId) => {
+                    selectedNodeId.value = nodeId
+                    const node = nodes.value.find(n => n.id === nodeId)
+                    if (node) {
+                        selectedNodeDetails.value = {
+                            ...node,
+                            analytics: getNodeAnalytics(nodeId)
+                        }
+                    }
+                }
+                
+                const toggleAnimation = () => {
+                    isAnimating.value = !isAnimating.value
+                }
+                
+                const updateAnimationSpeed = () => {
+                    // Animation speed is handled by Vue reactivity
+                }
+                
+                const showBottleneckDetails = (bottleneck) => {
+                    alert(`瓶颈详情:\\n类型: ${bottleneck.type}\\n严重程度: ${(bottleneck.severity * 100).toFixed(0)}%\\n描述: ${bottleneck.description}\\n影响: ${(bottleneck.impact * 100).toFixed(0)}%`)
+                }
+                
+                // Test scenarios
+                const loadEcommerceScenario = () => {
+                    // Clear existing data
+                    nodes.value = []
+                    edges.value = []
+                    flowData.value = []
+                    nodeAnalytics.value = {}
+                    bottlenecks.value = []
+                    
+                    // Create e-commerce funnel nodes
+                    const nodeData = [
+                        { id: 'start', type: 'start', label: '网站访问', x: 50, y: 200 },
+                        { id: 'browse', type: 'action', label: '浏览商品', x: 250, y: 200 },
+                        { id: 'cart', type: 'action', label: '加入购物车', x: 450, y: 200 },
+                        { id: 'checkout', type: 'condition', label: '结账页面', x: 650, y: 150 },
+                        { id: 'payment', type: 'action', label: '支付处理', x: 850, y: 100 },
+                        { id: 'success', type: 'conversion', label: '购买成功', x: 1050, y: 100 },
+                        { id: 'abandoned', type: 'end', label: '购物车遗弃', x: 850, y: 300 }
+                    ]
+                    
+                    nodes.value = nodeData.map(node => ({
+                        id: node.id,
+                        type: node.type,
+                        label: node.label,
+                        position: { x: node.x, y: node.y }
+                    }))
+                    
+                    // Create connections
+                    edges.value = [
+                        { id: 'e1', source: 'start', target: 'browse' },
+                        { id: 'e2', source: 'browse', target: 'cart' },
+                        { id: 'e3', source: 'cart', target: 'checkout' },
+                        { id: 'e4', source: 'checkout', target: 'payment' },
+                        { id: 'e5', source: 'payment', target: 'success' },
+                        { id: 'e6', source: 'checkout', target: 'abandoned' }
+                    ]
+                    
+                    // Generate flow data
+                    flowData.value = [
+                        { edgeId: 'e1', type: 'user', volume: 10000, timestamp: Date.now() },
+                        { edgeId: 'e2', type: 'user', volume: 3000, timestamp: Date.now() },
+                        { edgeId: 'e3', type: 'user', volume: 1500, timestamp: Date.now() },
+                        { edgeId: 'e4', type: 'conversion', volume: 800, timestamp: Date.now() },
+                        { edgeId: 'e5', type: 'conversion', volume: 600, timestamp: Date.now() },
+                        { edgeId: 'e6', type: 'error', volume: 700, timestamp: Date.now() }
+                    ]
+                    
+                    // Generate analytics
+                    nodeAnalytics.value = {
+                        start: { conversionRate: 0.3, volume: 10000, performance: 0.85, avgTimeSpent: 2.1 },
+                        browse: { conversionRate: 0.5, volume: 3000, performance: 0.75, avgTimeSpent: 45.2 },
+                        cart: { conversionRate: 0.53, volume: 1500, performance: 0.70, avgTimeSpent: 32.1 },
+                        checkout: { conversionRate: 0.4, volume: 800, performance: 0.60, avgTimeSpent: 120.5 },
+                        payment: { conversionRate: 0.75, volume: 600, performance: 0.90, avgTimeSpent: 15.3 },
+                        success: { conversionRate: 1.0, volume: 600, performance: 0.95, avgTimeSpent: 8.2 },
+                        abandoned: { conversionRate: 0, volume: 700, performance: 0.0, avgTimeSpent: 0 }
+                    }
+                    
+                    // Generate bottlenecks
+                    bottlenecks.value = [
+                        {
+                            nodeId: 'checkout',
+                            severity: 0.7,
+                            type: 'conversion',
+                            description: '结账页面转化率较低',
+                            position: { x: 650, y: 150 },
+                            impact: 0.6,
+                            suggestions: ['优化页面加载速度', '简化结账流程', '增加信任标识']
+                        }
+                    ]
+                }
+                
+                const loadSaasScenario = () => {
+                    // Clear existing data
+                    nodes.value = []
+                    edges.value = []
+                    flowData.value = []
+                    nodeAnalytics.value = {}
+                    bottlenecks.value = []
+                    
+                    // Create SaaS registration funnel
+                    const nodeData = [
+                        { id: 'landing', type: 'start', label: '着陆页', x: 50, y: 300 },
+                        { id: 'signup', type: 'action', label: '注册页面', x: 250, y: 300 },
+                        { id: 'verify', type: 'condition', label: '邮箱验证', x: 450, y: 300 },
+                        { id: 'onboard', type: 'action', label: '产品引导', x: 650, y: 200 },
+                        { id: 'trial', type: 'action', label: '免费试用', x: 850, y: 200 },
+                        { id: 'convert', type: 'conversion', label: '付费转化', x: 1050, y: 200 },
+                        { id: 'dropout', type: 'end', label: '流失用户', x: 650, y: 400 }
+                    ]
+                    
+                    nodes.value = nodeData.map(node => ({
+                        id: node.id,
+                        type: node.type,
+                        label: node.label,
+                        position: { x: node.x, y: node.y }
+                    }))
+                    
+                    edges.value = [
+                        { id: 'e1', source: 'landing', target: 'signup' },
+                        { id: 'e2', source: 'signup', target: 'verify' },
+                        { id: 'e3', source: 'verify', target: 'onboard' },
+                        { id: 'e4', source: 'onboard', target: 'trial' },
+                        { id: 'e5', source: 'trial', target: 'convert' },
+                        { id: 'e6', source: 'verify', target: 'dropout' }
+                    ]
+                    
+                    flowData.value = [
+                        { edgeId: 'e1', type: 'user', volume: 5000, timestamp: Date.now() },
+                        { edgeId: 'e2', type: 'user', volume: 2000, timestamp: Date.now() },
+                        { edgeId: 'e3', type: 'user', volume: 1600, timestamp: Date.now() },
+                        { edgeId: 'e4', type: 'user', volume: 1200, timestamp: Date.now() },
+                        { edgeId: 'e5', type: 'conversion', volume: 400, timestamp: Date.now() },
+                        { edgeId: 'e6', type: 'error', volume: 400, timestamp: Date.now() }
+                    ]
+                    
+                    nodeAnalytics.value = {
+                        landing: { conversionRate: 0.4, volume: 5000, performance: 0.80, avgTimeSpent: 15.2 },
+                        signup: { conversionRate: 0.8, volume: 2000, performance: 0.70, avgTimeSpent: 180.1 },
+                        verify: { conversionRate: 0.75, volume: 1600, performance: 0.85, avgTimeSpent: 5.0 },
+                        onboard: { conversionRate: 0.75, volume: 1200, performance: 0.65, avgTimeSpent: 300.5 },
+                        trial: { conversionRate: 0.33, volume: 400, performance: 0.90, avgTimeSpent: 1800.2 },
+                        convert: { conversionRate: 1.0, volume: 400, performance: 0.95, avgTimeSpent: 45.0 },
+                        dropout: { conversionRate: 0, volume: 400, performance: 0.0, avgTimeSpent: 0 }
+                    }
+                    
+                    bottlenecks.value = [
+                        {
+                            nodeId: 'onboard',
+                            severity: 0.8,
+                            type: 'performance',
+                            description: '产品引导完成率低',
+                            position: { x: 650, y: 200 },
+                            impact: 0.7,
+                            suggestions: ['简化引导流程', '增加进度提示', '提供跳过选项']
+                        }
+                    ]
+                }
+                
+                const loadContentScenario = () => {
+                    // Similar implementation for content consumption scenario
+                    console.log('Loading content consumption scenario...')
+                    // Implementation would be similar to above scenarios
+                }
+                
+                const simulateRealTimeData = () => {
+                    // Simulate real-time data updates
+                    const updateData = () => {
+                        // Update volumes and conversion rates randomly
+                        Object.keys(nodeAnalytics.value).forEach(nodeId => {
+                            const analytics = nodeAnalytics.value[nodeId]
+                            analytics.volume += Math.floor(Math.random() * 10)
+                            analytics.conversionRate = Math.max(0, Math.min(1, analytics.conversionRate + (Math.random() - 0.5) * 0.02))
+                            analytics.performance = Math.max(0, Math.min(1, analytics.performance + (Math.random() - 0.5) * 0.01))
+                        })
+                        
+                        // Update flow data
+                        flowData.value.forEach(flow => {
+                            flow.volume += Math.floor(Math.random() * 5)
+                            flow.timestamp = Date.now()
+                        })
+                        
+                        // Update performance metrics
+                        fps.value = 55 + Math.random() * 10
+                        renderTime.value = 8 + Math.random() * 4
+                        memoryUsage.value = Math.floor(45 + Math.random() * 20)
+                    }
+                    
+                    // Start real-time simulation
+                    const interval = setInterval(updateData, 1000)
+                    
+                    // Stop after 30 seconds
+                    setTimeout(() => clearInterval(interval), 30000)
+                    
+                    console.log('Real-time data simulation started for 30 seconds')
+                }
+                
+                // Initialize with e-commerce scenario
+                onMounted(() => {
+                    loadEcommerceScenario()
+                    
+                    // Start performance monitoring
+                    const monitorPerformance = () => {
+                        const startTime = performance.now()
+                        requestAnimationFrame(() => {
+                            renderTime.value = performance.now() - startTime
+                            if (performance.memory) {
+                                memoryUsage.value = Math.floor(performance.memory.usedJSHeapSize / 1024 / 1024)
+                            }
+                        })
+                    }
+                    
+                    setInterval(monitorPerformance, 1000)
+                })
+                
+                return {
+                    // State
+                    nodes,
+                    edges,
+                    flowData,
+                    nodeAnalytics,
+                    bottlenecks,
+                    selectedNodeId,
+                    selectedNodeDetails,
+                    
+                    // Animation
+                    isAnimating,
+                    animationSpeed,
+                    particleCount,
+                    
+                    // Visualization settings
+                    showFlowIntensity,
+                    showConversionRates,
+                    showVolumeIndicators,
+                    showPerformanceIndicators,
+                    showTrendCharts,
+                    showHeatMap,
+                    showBottleneckAlerts,
+                    
+                    // Performance
+                    fps,
+                    renderTime,
+                    memoryUsage,
+                    
+                    // Computed
+                    totalVolume,
+                    overallConversionRate,
+                    visibleBottlenecks,
+                    heatMapCells,
+                    
+                    // Methods
+                    getNodeColor,
+                    getEdgeColor,
+                    getEdgeWidth,
+                    getEdgePath,
+                    getEdgeMidpoint,
+                    getFlowData,
+                    getFlowColor,
+                    getFlowWidth,
+                    getFlowOpacity,
+                    getEdgeParticles,
+                    getNodeAnalytics,
+                    getConversionRateColor,
+                    getVolumeRadius,
+                    getVolumeColor,
+                    getPerformanceColor,
+                    getBottleneckColor,
+                    isHighActivity,
+                    formatNumber,
+                    selectNode,
+                    toggleAnimation,
+                    updateAnimationSpeed,
+                    showBottleneckDetails,
+                    
+                    // Test scenarios
+                    loadEcommerceScenario,
+                    loadSaasScenario,
+                    loadContentScenario,
+                    simulateRealTimeData
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>

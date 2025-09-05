@@ -1,0 +1,277 @@
+// Pathfinder 项目 Prisma Schema
+// 版本: 1.0
+// 数据库: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==============================================
+// 用户账户模型
+// ==============================================
+model User {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  username      String    @unique @db.VarChar(50)
+  email         String    @unique @db.VarChar(255)
+  passwordHash  String    @map("password_hash") @db.VarChar(255)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  lastLoginAt   DateTime? @map("last_login_at") @db.Timestamptz(6)
+  isActive      Boolean   @default(true) @map("is_active")
+
+  // 关联关系
+  funnels     Funnel[]
+  aiSessions  AiSession[]
+
+  @@map("users")
+  @@index([email])
+  @@index([username])
+  @@index([createdAt])
+  @@index([lastLoginAt])
+}
+
+// ==============================================
+// 漏斗模型
+// ==============================================
+model Funnel {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  name        String    @db.VarChar(100)
+  description String?
+  canvasData  Json?     @map("canvas_data") @db.JsonB
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // 关联关系
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nodes      Node[]
+  edges      Edge[]
+  aiSessions AiSession[]
+
+  @@map("funnels")
+  @@index([userId])
+  @@index([createdAt])
+  @@index([name])
+}
+
+// ==============================================
+// 节点模型
+// ==============================================
+model Node {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  funnelId  String    @map("funnel_id") @db.Uuid
+  nodeType  NodeType  @map("node_type")
+  label     String    @default("新节点") @db.VarChar(30)
+  positionX Decimal   @map("position_x") @db.Decimal(10, 2)
+  positionY Decimal   @map("position_y") @db.Decimal(10, 2)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // 关联关系
+  funnel       Funnel     @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+  nodeData     NodeData[]
+  sourceEdges  Edge[]     @relation("SourceNode")
+  targetEdges  Edge[]     @relation("TargetNode")
+
+  @@map("nodes")
+  @@index([funnelId])
+  @@index([nodeType])
+  @@index([positionX, positionY])
+}
+
+// 节点类型枚举
+enum NodeType {
+  awareness
+  acquisition
+  activation
+  revenue
+  retention
+
+  @@map("node_type")
+}
+
+// ==============================================
+// 边（连接）模型
+// ==============================================
+model Edge {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  funnelId     String   @map("funnel_id") @db.Uuid
+  sourceNodeId String   @map("source_node_id") @db.Uuid
+  targetNodeId String   @map("target_node_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // 关联关系
+  funnel     Funnel @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+  sourceNode Node   @relation("SourceNode", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNode Node   @relation("TargetNode", fields: [targetNodeId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceNodeId, targetNodeId])
+  @@map("edges")
+  @@index([funnelId])
+  @@index([sourceNodeId])
+  @@index([targetNodeId])
+  @@index([sourceNodeId, targetNodeId])
+}
+
+// ==============================================
+// 节点数据模型
+// ==============================================
+model NodeData {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nodeId         String   @map("node_id") @db.Uuid
+  weekStartDate  DateTime @map("week_start_date") @db.Date
+  entryCount     Int      @default(0) @map("entry_count")
+  convertedCount Int      @default(0) @map("converted_count")
+  conversionRate Decimal? @map("conversion_rate") @db.Decimal(5, 4)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // 关联关系
+  node Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@unique([nodeId, weekStartDate])
+  @@map("node_data")
+  @@index([nodeId])
+  @@index([weekStartDate])
+  @@index([createdAt])
+  @@index([conversionRate])
+}
+
+// ==============================================
+// AI 会话模型
+// ==============================================
+model AiSession {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  funnelId       String?      @map("funnel_id") @db.Uuid
+  sessionContext SessionContext? @map("session_context")
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  endedAt        DateTime?    @map("ended_at") @db.Timestamptz(6)
+
+  // 关联关系
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  funnel   Funnel?     @relation(fields: [funnelId], references: [id], onDelete: SetNull)
+  messages AiMessage[]
+
+  @@map("ai_sessions")
+  @@index([userId])
+  @@index([createdAt])
+  @@index([funnelId])
+  @@index([sessionContext])
+}
+
+// AI 会话上下文枚举
+enum SessionContext {
+  invitation
+  objection_handling
+  general
+
+  @@map("session_context")
+}
+
+// ==============================================
+// AI 消息模型
+// ==============================================
+model AiMessage {
+  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId String      @map("session_id") @db.Uuid
+  role      MessageRole
+  content   String
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // 关联关系
+  session AiSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("ai_messages")
+  @@index([sessionId])
+  @@index([createdAt])
+  @@index([role])
+}
+
+// 消息角色枚举
+enum MessageRole {
+  user
+  assistant
+
+  @@map("message_role")
+}
+
+// ==============================================
+// 审计日志模型（可选）
+// ==============================================
+model AuditLog {
+  id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tableName String     @map("table_name") @db.VarChar(50)
+  operation Operation
+  oldValues Json?      @map("old_values") @db.JsonB
+  newValues Json?      @map("new_values") @db.JsonB
+  userId    String?    @map("user_id") @db.Uuid
+  timestamp DateTime   @default(now()) @db.Timestamptz(6)
+
+  @@map("audit_log")
+  @@index([tableName])
+  @@index([timestamp])
+  @@index([userId])
+  @@index([operation])
+}
+
+// 审计操作枚举
+enum Operation {
+  INSERT
+  UPDATE
+  DELETE
+
+  @@map("audit_operation")
+}
+
+// ==============================================
+// 视图模型（用于复杂查询）
+// ==============================================
+
+// 注意：Prisma 目前不直接支持视图，但可以使用原始查询
+// 以下是可以在代码中使用的原始 SQL 查询示例
+
+/*
+-- 漏斗统计视图查询
+SELECT 
+    f.id as funnel_id,
+    f.name as funnel_name,
+    f.user_id,
+    COUNT(DISTINCT n.id) as node_count,
+    COUNT(DISTINCT e.id) as edge_count,
+    COUNT(DISTINCT nd.id) as data_entries,
+    MAX(nd.created_at) as latest_data_entry
+FROM funnels f
+LEFT JOIN nodes n ON f.id = n.funnel_id
+LEFT JOIN edges e ON f.id = e.funnel_id
+LEFT JOIN node_data nd ON n.id = nd.node_id
+GROUP BY f.id, f.name, f.user_id;
+
+-- 节点转化率分析查询
+SELECT 
+    n.id as node_id,
+    n.label as node_name,
+    n.node_type,
+    f.id as funnel_id,
+    f.name as funnel_name,
+    nd.week_start_date,
+    nd.entry_count,
+    nd.converted_count,
+    nd.conversion_rate,
+    CASE 
+        WHEN nd.conversion_rate < 0.2 THEN 'critical'
+        WHEN nd.conversion_rate < 0.5 THEN 'low'
+        WHEN nd.conversion_rate < 0.8 THEN 'medium'
+        ELSE 'high'
+    END as performance_category
+FROM nodes n
+JOIN funnels f ON n.funnel_id = f.id
+LEFT JOIN node_data nd ON n.id = nd.node_id
+WHERE nd.id IS NOT NULL;
+*/

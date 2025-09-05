@@ -1,0 +1,45 @@
+{
+  "feishuWebhook": "https://open.feishu.cn/open-apis/bot/v2/hook/YOUR_WEBHOOK_ID",
+  "feishuToken": "YOUR_BOT_TOKEN",
+  "permissionRules": {
+    "高风险命令需要审批": [
+      "Bash(rm -rf.*)",
+      "Bash(sudo.*)",
+      "Bash(chmod 777.*)",
+      "Bash(.*>/etc/.*)",
+      "Write(.*\\.sh)",
+      "Edit(/usr/.*)",
+      "Edit(/etc/.*)"
+    ],
+    "网络命令需要审批": [
+      "Bash(wget.*)",
+      "Bash(curl.*github\\.com.*)",
+      "Bash(git clone.*)",
+      "WebFetch(.*)"
+    ],
+    "安装命令需要审批": [
+      "Bash(npm install.*-g.*)",
+      "Bash(pip install.*--system.*)",
+      "Bash(brew install.*)",
+      "Bash(apt-get install.*)"
+    ],
+    "直接允许的安全命令": [
+      "Read(.*)",
+      "LS(.*)",
+      "Grep(.*)",
+      "Glob(.*)",
+      "Bash(ls.*)",
+      "Bash(cat.*)",
+      "Bash(echo.*)",
+      "Bash(pwd)",
+      "Bash(whoami)"
+    ]
+  },
+  "defaultAction": "ask",
+  "timeout": 300000,
+  "notificationOptions": {
+    "includeContext": true,
+    "showFileContent": false,
+    "maxCommandLength": 200
+  }
+}

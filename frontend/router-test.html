@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Router 测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .test-button { 
+            display: inline-block; 
+            padding: 10px 20px; 
+            background: #4f46e5; 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 4px; 
+            margin: 5px;
+        }
+        .test-button:hover { background: #3730a3; }
+    </style>
+</head>
+<body>
+    <h1>Router 链接测试</h1>
+    
+    <p>请点击以下链接测试是否能正常跳转：</p>
+    
+    <div>
+        <a href="http://localhost:3000/" class="test-button" target="_blank">首页</a>
+        <a href="http://localhost:3000/login" class="test-button" target="_blank">登录页</a>
+        <a href="http://localhost:3000/funnels" class="test-button" target="_blank">漏斗列表</a>
+        <a href="http://localhost:3000/funnels/create" class="test-button" target="_blank">创建漏斗</a>
+    </div>
+    
+    <div style="margin-top: 30px;">
+        <h3>测试步骤：</h3>
+        <ol>
+            <li>点击 <strong>登录页</strong> 链接</li>
+            <li>使用 <code>test@pathfinder.com</code> / <code>password123</code> 登录</li>
+            <li>登录成功后，点击 <strong>漏斗列表</strong> 链接</li>
+            <li>在漏斗列表页面，尝试点击 <strong>创建新漏斗</strong> 按钮</li>
+        </ol>
+    </div>
+    
+    <div style="margin-top: 20px; padding: 15px; background: #f0f9ff; border-left: 4px solid #0ea5e9;">
+        <h4>如果按钮仍然无响应：</h4>
+        <p>请按 F12 打开开发者工具，查看 Console 标签页中是否有错误信息，然后告诉我具体的错误内容。</p>
+    </div>
+    
+    <script>
+        console.log('Router test page loaded');
+        console.log('Frontend server:', 'http://localhost:3000');
+        console.log('Backend API:', 'http://localhost:8080');
+    </script>
+</body>
+</html>

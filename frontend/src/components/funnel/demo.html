@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pathfinder 漏斗建模器演示</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .funnel-node {
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .funnel-node:hover {
+            filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.3));
+        }
+        .funnel-node.selected {
+            filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.8));
+        }
+        .connection-line {
+            stroke-width: 2;
+            stroke: #6b7280;
+            fill: none;
+            marker-end: url(#arrow);
+        }
+        .grid-pattern {
+            fill: none;
+            stroke: #e5e7eb;
+            stroke-width: 0.5;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 h-screen overflow-hidden">
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-200 px-6 py-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-xl font-semibold text-gray-900">Pathfinder 漏斗建模器</h1>
+                <p class="text-sm text-gray-600">拖拽节点，点击连接，构建您的客户旅程漏斗</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="text-sm text-gray-600">
+                    <span id="nodeCount">0</span> 节点 · 
+                    <span id="edgeCount">0</span> 连接
+                </div>
+                <button id="clearCanvas" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">
+                    清空画布
+                </button>
+                <button id="exportData" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                    导出数据
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex h-full">
+        <!-- Sidebar -->
+        <div class="w-80 bg-white border-r border-gray-200 p-6">
+            <h3 class="font-medium text-gray-900 mb-4">节点类型</h3>
+            
+            <div class="space-y-2">
+                <div class="grid grid-cols-2 gap-2">
+                    <button class="node-type-btn p-3 border border-gray-300 rounded-md hover:border-blue-500 hover:bg-blue-50 transition-colors" data-type="start">
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                            <span class="text-sm">开始</span>
+                        </div>
+                    </button>
+                    <button class="node-type-btn p-3 border border-gray-300 rounded-md hover:border-blue-500 hover:bg-blue-50 transition-colors" data-type="end">
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                            <span class="text-sm">结束</span>
+                        </div>
+                    </button>
+                    <button class="node-type-btn p-3 border border-gray-300 rounded-md hover:border-blue-500 hover:bg-blue-50 transition-colors" data-type="event">
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded bg-blue-500"></div>
+                            <span class="text-sm">事件</span>
+                        </div>
+                    </button>
+                    <button class="node-type-btn p-3 border border-gray-300 rounded-md hover:border-blue-500 hover:bg-blue-50 transition-colors" data-type="condition">
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded bg-yellow-500"></div>
+                            <span class="text-sm">条件</span>
+                        </div>
+                    </button>
+                    <button class="node-type-btn p-3 border border-gray-300 rounded-md hover:border-blue-500 hover:bg-blue-50 transition-colors" data-type="action">
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded bg-purple-500"></div>
+                            <span class="text-sm">动作</span>
+                        </div>
+                    </button>
+                    <button class="node-type-btn p-3 border border-gray-300 rounded-md hover:border-blue-500 hover:bg-blue-50 transition-colors" data-type="delay">
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded bg-orange-500"></div>
+                            <span class="text-sm">延迟</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-6 border-t border-gray-200">
+                <h3 class="font-medium text-gray-900 mb-4">选中节点</h3>
+                <div id="nodeProperties" class="text-sm text-gray-500">
+                    点击节点查看属性
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <h3 class="font-medium text-gray-900 mb-2">示例模板</h3>
+                <button id="loadTemplate" class="w-full px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm">
+                    加载电商转化漏斗
+                </button>
+            </div>
+        </div>
+
+        <!-- Canvas Area -->
+        <div class="flex-1 relative bg-gray-50">
+            <svg id="canvas" class="w-full h-full">
+                <defs>
+                    <!-- Arrow marker -->
+                    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="3" markerWidth="6" markerHeight="6" orient="auto" markerUnits="strokeWidth">
+                        <path d="M0,0 L0,6 L9,3 z" fill="#6b7280"/>
+                    </marker>
+                    
+                    <!-- Grid pattern -->
+                    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                        <path d="M 20 0 L 0 0 0 20" class="grid-pattern"/>
+                    </pattern>
+                </defs>
+
+                <!-- Grid background -->
+                <rect width="100%" height="100%" fill="url(#grid)"/>
+                
+                <!-- Main container group -->
+                <g id="container">
+                    <g id="edges"></g>
+                    <g id="nodes"></g>
+                </g>
+            </svg>
+
+            <!-- Canvas controls -->
+            <div class="absolute top-4 left-4 flex gap-2">
+                <button id="zoomIn" class="px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 text-sm">放大</button>
+                <button id="zoomOut" class="px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 text-sm">缩小</button>
+                <button id="fitToView" class="px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 text-sm">适应视图</button>
+            </div>
+
+            <!-- Status indicator -->
+            <div class="absolute bottom-4 right-4 bg-white border border-gray-300 rounded-lg shadow-sm p-3">
+                <div class="text-xs text-gray-600">
+                    缩放: <span id="zoomLevel">100%</span>
+                </div>
+                <div class="text-xs text-gray-600 mt-1">
+                    选择节点类型，然后点击画布添加
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局状态
+        let nodes = [];
+        let edges = [];
+        let selectedNodeType = null;
+        let selectedNode = null;
+        let isConnecting = false;
+        let connectionSource = null;
+        let nodeIdCounter = 0;
+        let edgeIdCounter = 0;
+
+        // D3 选择器
+        const svg = d3.select('#canvas');
+        const container = d3.select('#container');
+        const nodesGroup = d3.select('#nodes');
+        const edgesGroup = d3.select('#edges');
+
+        // 缩放行为
+        const zoom = d3.zoom()
+            .scaleExtent([0.1, 3])
+            .on('zoom', (event) => {
+                container.attr('transform', event.transform);
+                document.getElementById('zoomLevel').textContent = Math.round(event.transform.k * 100) + '%';
+            });
+
+        svg.call(zoom);
+
+        // 节点类型配置
+        const nodeTypeConfigs = {
+            start: { label: '开始', color: '#10b981' },
+            end: { label: '结束', color: '#ef4444' },
+            event: { label: '事件', color: '#3b82f6' },
+            condition: { label: '条件', color: '#f59e0b' },
+            action: { label: '动作', color: '#8b5cf6' },
+            delay: { label: '延迟', color: '#f97316' }
+        };
+
+        // 节点类型选择
+        document.querySelectorAll('.node-type-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // 清除之前的选择
+                document.querySelectorAll('.node-type-btn').forEach(b => {
+                    b.classList.remove('border-blue-500', 'bg-blue-50');
+                });
+                
+                // 选择当前类型
+                if (selectedNodeType === btn.dataset.type) {
+                    selectedNodeType = null;
+                } else {
+                    selectedNodeType = btn.dataset.type;
+                    btn.classList.add('border-blue-500', 'bg-blue-50');
+                }
+            });
+        });
+
+        // 画布点击事件
+        svg.on('click', function(event) {
+            if (event.target !== this) return;
+            
+            if (selectedNodeType) {
+                const [x, y] = d3.pointer(event, container.node());
+                addNode(selectedNodeType, x, y);
+                selectedNodeType = null;
+                
+                // 清除选择状态
+                document.querySelectorAll('.node-type-btn').forEach(btn => {
+                    btn.classList.remove('border-blue-500', 'bg-blue-50');
+                });
+            } else {
+                // 清除节点选择
+                selectedNode = null;
+                updateNodeSelection();
+                updateNodeProperties();
+            }
+        });
+
+        // 添加节点
+        function addNode(type, x, y) {
+            const node = {
+                id: ++nodeIdCounter,
+                type: type,
+                x: x,
+                y: y,
+                label: nodeTypeConfigs[type].label + ' ' + nodeIdCounter
+            };
+            
+            nodes.push(node);
+            updateVisualization();
+        }
+
+        // 添加连接
+        function addEdge(sourceId, targetId) {
+            const edge = {
+                id: ++edgeIdCounter,
+                source: sourceId,
+                target: targetId
+            };
+            
+            edges.push(edge);
+            updateVisualization();
+        }
+
+        // 更新可视化
+        function updateVisualization() {
+            updateNodes();
+            updateEdges();
+            updateStats();
+        }
+
+        // 更新节点
+        function updateNodes() {
+            const nodeSelection = nodesGroup.selectAll('.funnel-node')
+                .data(nodes, d => d.id);
+
+            // 移除旧节点
+            nodeSelection.exit().remove();
+
+            // 添加新节点
+            const nodeEnter = nodeSelection.enter()
+                .append('g')
+                .attr('class', 'funnel-node')
+                .attr('transform', d => `translate(${d.x}, ${d.y})`)
+                .call(d3.drag()
+                    .on('start', dragStarted)
+                    .on('drag', dragged)
+                    .on('end', dragEnded));
+
+            // 节点背景
+            nodeEnter.append('rect')
+                .attr('width', 120)
+                .attr('height', 40)
+                .attr('rx', 4)
+                .attr('fill', d => nodeTypeConfigs[d.type].color)
+                .attr('stroke', '#fff')
+                .attr('stroke-width', 2);
+
+            // 节点标签
+            nodeEnter.append('text')
+                .attr('x', 60)
+                .attr('y', 25)
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'middle')
+                .attr('fill', 'white')
+                .attr('font-size', '12px')
+                .attr('font-weight', '500')
+                .text(d => d.label);
+
+            // 连接点
+            nodeEnter.append('circle')
+                .attr('class', 'connection-point')
+                .attr('cx', 120)
+                .attr('cy', 20)
+                .attr('r', 6)
+                .attr('fill', '#10b981')
+                .attr('stroke', 'white')
+                .attr('stroke-width', 2)
+                .style('opacity', 0)
+                .on('mousedown', function(event, d) {
+                    event.stopPropagation();
+                    startConnection(d.id);
+                });
+
+            // 鼠标事件
+            nodeEnter.on('click', function(event, d) {
+                event.stopPropagation();
+                selectNode(d);
+            });
+
+            nodeEnter.on('mouseenter', function() {
+                d3.select(this).select('.connection-point').style('opacity', 1);
+            });
+
+            nodeEnter.on('mouseleave', function() {
+                if (!isConnecting) {
+                    d3.select(this).select('.connection-point').style('opacity', 0);
+                }
+            });
+
+            // 更新现有节点位置
+            nodeSelection.merge(nodeEnter)
+                .attr('transform', d => `translate(${d.x}, ${d.y})`);
+        }
+
+        // 更新连接线
+        function updateEdges() {
+            const edgeSelection = edgesGroup.selectAll('.connection-line')
+                .data(edges, d => d.id);
+
+            edgeSelection.exit().remove();
+
+            edgeSelection.enter()
+                .append('path')
+                .attr('class', 'connection-line')
+                .merge(edgeSelection)
+                .attr('d', d => {
+                    const source = nodes.find(n => n.id === d.source);
+                    const target = nodes.find(n => n.id === d.target);
+                    if (!source || !target) return '';
+                    
+                    const sx = source.x + 120;
+                    const sy = source.y + 20;
+                    const tx = target.x;
+                    const ty = target.y + 20;
+                    
+                    return `M${sx},${sy} L${tx},${ty}`;
+                });
+        }
+
+        // 拖拽处理
+        function dragStarted(event, d) {
+            d3.select(this).raise();
+        }
+
+        function dragged(event, d) {
+            d.x = event.x;
+            d.y = event.y;
+            d3.select(this).attr('transform', `translate(${d.x}, ${d.y})`);
+            updateEdges();
+        }
+
+        function dragEnded(event, d) {
+            // 可以在这里添加自动对齐网格的逻辑
+        }
+
+        // 节点选择
+        function selectNode(node) {
+            selectedNode = node;
+            updateNodeSelection();
+            updateNodeProperties();
+        }
+
+        function updateNodeSelection() {
+            nodesGroup.selectAll('.funnel-node')
+                .classed('selected', d => selectedNode && d.id === selectedNode.id);
+        }
+
+        function updateNodeProperties() {
+            const propertiesDiv = document.getElementById('nodeProperties');
+            
+            if (selectedNode) {
+                propertiesDiv.innerHTML = `
+                    <div class="space-y-2">
+                        <div><strong>类型:</strong> ${nodeTypeConfigs[selectedNode.type].label}</div>
+                        <div><strong>标签:</strong> ${selectedNode.label}</div>
+                        <div><strong>位置:</strong> (${Math.round(selectedNode.x)}, ${Math.round(selectedNode.y)})</div>
+                        <button onclick="deleteSelectedNode()" class="mt-2 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700">删除节点</button>
+                    </div>
+                `;
+            } else {
+                propertiesDiv.innerHTML = '<div class="text-gray-500">点击节点查看属性</div>';
+            }
+        }
+
+        // 连接处理
+        function startConnection(nodeId) {
+            isConnecting = true;
+            connectionSource = nodeId;
+            
+            // 显示所有连接点
+            nodesGroup.selectAll('.connection-point').style('opacity', 1);
+            
+            // 添加鼠标移动事件监听
+            svg.on('mousemove.connecting', function(event) {
+                // 可以在这里绘制连接预览线
+            });
+            
+            svg.on('mouseup.connecting', function() {
+                endConnection();
+            });
+        }
+
+        function endConnection(targetNodeId) {
+            if (isConnecting && connectionSource && targetNodeId && connectionSource !== targetNodeId) {
+                addEdge(connectionSource, targetNodeId);
+            }
+            
+            isConnecting = false;
+            connectionSource = null;
+            
+            // 隐藏连接点
+            nodesGroup.selectAll('.connection-point').style('opacity', 0);
+            
+            // 移除事件监听
+            svg.on('mousemove.connecting', null);
+            svg.on('mouseup.connecting', null);
+        }
+
+        // 连接点点击处理
+        svg.on('mouseup', function(event) {
+            if (isConnecting) {
+                const target = event.target.closest('.funnel-node');
+                if (target) {
+                    const nodeData = d3.select(target).datum();
+                    endConnection(nodeData.id);
+                } else {
+                    endConnection();
+                }
+            }
+        });
+
+        // 删除选中节点
+        function deleteSelectedNode() {
+            if (!selectedNode) return;
+            
+            // 删除相关连接
+            edges = edges.filter(e => e.source !== selectedNode.id && e.target !== selectedNode.id);
+            
+            // 删除节点
+            nodes = nodes.filter(n => n.id !== selectedNode.id);
+            
+            selectedNode = null;
+            updateVisualization();
+            updateNodeProperties();
+        }
+
+        // 统计更新
+        function updateStats() {
+            document.getElementById('nodeCount').textContent = nodes.length;
+            document.getElementById('edgeCount').textContent = edges.length;
+        }
+
+        // 控制按钮
+        document.getElementById('zoomIn').addEventListener('click', () => {
+            svg.transition().call(zoom.scaleBy, 1.2);
+        });
+
+        document.getElementById('zoomOut').addEventListener('click', () => {
+            svg.transition().call(zoom.scaleBy, 0.8);
+        });
+
+        document.getElementById('fitToView').addEventListener('click', () => {
+            if (nodes.length === 0) return;
+            
+            const bounds = {
+                minX: Math.min(...nodes.map(n => n.x)) - 50,
+                maxX: Math.max(...nodes.map(n => n.x + 120)) + 50,
+                minY: Math.min(...nodes.map(n => n.y)) - 50,
+                maxY: Math.max(...nodes.map(n => n.y + 40)) + 50
+            };
+            
+            const width = bounds.maxX - bounds.minX;
+            const height = bounds.maxY - bounds.minY;
+            const svgRect = svg.node().getBoundingClientRect();
+            
+            const scale = Math.min(svgRect.width / width, svgRect.height / height, 1);
+            const centerX = (bounds.minX + bounds.maxX) / 2;
+            const centerY = (bounds.minY + bounds.maxY) / 2;
+            
+            const transform = d3.zoomIdentity
+                .translate(svgRect.width / 2, svgRect.height / 2)
+                .scale(scale)
+                .translate(-centerX, -centerY);
+            
+            svg.transition().call(zoom.transform, transform);
+        });
+
+        document.getElementById('clearCanvas').addEventListener('click', () => {
+            if (confirm('确定要清空画布吗？')) {
+                nodes = [];
+                edges = [];
+                selectedNode = null;
+                updateVisualization();
+                updateNodeProperties();
+            }
+        });
+
+        document.getElementById('exportData').addEventListener('click', () => {
+            const data = { nodes, edges };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'funnel_data.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        // 加载示例模板
+        document.getElementById('loadTemplate').addEventListener('click', () => {
+            nodes = [
+                { id: ++nodeIdCounter, type: 'start', x: 100, y: 100, label: '网站访问' },
+                { id: ++nodeIdCounter, type: 'event', x: 300, y: 100, label: '浏览商品' },
+                { id: ++nodeIdCounter, type: 'event', x: 500, y: 100, label: '加入购物车' },
+                { id: ++nodeIdCounter, type: 'condition', x: 700, y: 50, label: '登录检查' },
+                { id: ++nodeIdCounter, type: 'event', x: 900, y: 100, label: '结账付款' },
+                { id: ++nodeIdCounter, type: 'end', x: 1100, y: 100, label: '购买成功' },
+                { id: ++nodeIdCounter, type: 'end', x: 900, y: 200, label: '放弃购买' }
+            ];
+            
+            edges = [
+                { id: ++edgeIdCounter, source: 1, target: 2 },
+                { id: ++edgeIdCounter, source: 2, target: 3 },
+                { id: ++edgeIdCounter, source: 3, target: 4 },
+                { id: ++edgeIdCounter, source: 4, target: 5 },
+                { id: ++edgeIdCounter, source: 5, target: 6 },
+                { id: ++edgeIdCounter, source: 4, target: 7 }
+            ];
+            
+            updateVisualization();
+            
+            // 自动适应视图
+            setTimeout(() => {
+                document.getElementById('fitToView').click();
+            }, 100);
+        });
+
+        // 初始化
+        updateVisualization();
+    </script>
+</body>
+</html>

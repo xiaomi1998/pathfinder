@@ -1,0 +1,55 @@
+{
+  "permissions": {
+    "ask": [
+      "Bash(rm.*)",
+      "Bash(sudo.*)", 
+      "Bash(chmod.*)",
+      "Bash(wget.*)",
+      "Bash(curl.*)",
+      "Bash(git clone.*)",
+      "Bash(npm install.*-g.*)",
+      "Bash(pip install.*)",
+      "Write(.*\\.sh)",
+      "Edit(/etc/.*)",
+      "Edit(/usr/.*)",
+      "WebFetch"
+    ],
+    "allow": [
+      "Read",
+      "LS", 
+      "Grep",
+      "Glob",
+      "Bash(ls.*)",
+      "Bash(cat.*)",
+      "Bash(echo.*)",
+      "Bash(pwd)",
+      "Bash(whoami)",
+      "Bash(node.*)",
+      "Bash(npm run.*)",
+      "Edit(.*\\.js)",
+      "Edit(.*\\.ts)",
+      "Edit(.*\\.json)",
+      "Edit(.*\\.md)",
+      "MultiEdit"
+    ],
+    "deny": [
+      "Bash(rm -rf /.*)",
+      "Bash(.*>/etc/passwd.*)",
+      "Bash(.*>/etc/shadow.*)",
+      "Edit(/etc/passwd)",
+      "Edit(/etc/shadow)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": {
+      "Bash": "bash /Users/kechen/Desktop/Pathfinder/claude-permission-hook.sh Bash \"$ARGS\" \"$DESCRIPTION\"",
+      "Write": "bash /Users/kechen/Desktop/Pathfinder/claude-permission-hook.sh Write \"$ARGS\" \"写入文件\"",
+      "Edit": "bash /Users/kechen/Desktop/Pathfinder/claude-permission-hook.sh Edit \"$ARGS\" \"编辑文件\"",
+      "WebFetch": "bash /Users/kechen/Desktop/Pathfinder/claude-permission-hook.sh WebFetch \"$ARGS\" \"网络请求\""
+    }
+  },
+  "experimental": {
+    "enableHooks": true,
+    "hookTimeout": 30000
+  }
+}

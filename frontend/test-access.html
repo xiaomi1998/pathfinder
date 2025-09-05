@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pathfinder 快速测试</title>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>Pathfinder 功能测试</h1>
+    
+    <div id="results"></div>
+    
+    <script>
+        const results = document.getElementById('results');
+        
+        async function testLogin() {
+            try {
+                const response = await axios.post('http://localhost:8080/api/auth/login', {
+                    email: 'test@pathfinder.com',
+                    password: 'password123'
+                });
+                
+                if (response.data.success) {
+                    const token = response.data.data.access_token;
+                    results.innerHTML += `
+                        <p>✅ 登录成功</p>
+                        <p>Token: ${token.substring(0, 20)}...</p>
+                    `;
+                    
+                    // 测试漏斗API
+                    const funnelsResponse = await axios.get('http://localhost:8080/api/funnels', {
+                        headers: {
+                            'Authorization': 'Bearer ' + token
+                        }
+                    });
+                    
+                    results.innerHTML += `
+                        <p>✅ 获取漏斗列表成功</p>
+                        <p>漏斗数量: ${funnelsResponse.data.data.funnels.length}</p>
+                    `;
+                    
+                    // 生成前端访问URL
+                    results.innerHTML += `
+                        <h3>前端访问链接：</h3>
+                        <p><a href="http://localhost:3000/funnels" target="_blank">漏斗列表页面</a></p>
+                        <p><a href="http://localhost:3000/funnels/create" target="_blank">创建漏斗页面</a></p>
+                        <p><strong>注意：需要先在前端登录</strong></p>
+                    `;
+                }
+            } catch (error) {
+                results.innerHTML += `<p>❌ 错误: ${error.message}</p>`;
+            }
+        }
+        
+        testLogin();
+    </script>
+</body>
+</html>

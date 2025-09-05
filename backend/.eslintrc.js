@@ -1,0 +1,92 @@
+module.exports = {
+  parser: '@typescript-eslint/parser',
+  plugins: ['@typescript-eslint'],
+  extends: [
+    'eslint:recommended',
+    '@typescript-eslint/recommended',
+  ],
+  parserOptions: {
+    ecmaVersion: 2022,
+    sourceType: 'module',
+    project: './tsconfig.json',
+  },
+  env: {
+    node: true,
+    es2022: true,
+    jest: true,
+  },
+  rules: {
+    // TypeScript specific rules
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    '@typescript-eslint/explicit-function-return-type': 'off',
+    '@typescript-eslint/explicit-module-boundary-types': 'off',
+    '@typescript-eslint/no-explicit-any': 'warn',
+    '@typescript-eslint/no-non-null-assertion': 'warn',
+    '@typescript-eslint/prefer-const': 'error',
+    '@typescript-eslint/no-var-requires': 'error',
+
+    // General ESLint rules
+    'no-console': ['warn', { allow: ['warn', 'error'] }],
+    'prefer-const': 'error',
+    'no-var': 'error',
+    'object-shorthand': 'error',
+    'prefer-template': 'error',
+    'template-curly-spacing': 'error',
+    'arrow-spacing': 'error',
+    'comma-dangle': ['error', 'never'],
+    'semi': ['error', 'always'],
+    'quotes': ['error', 'single', { allowTemplateLiterals: true }],
+    'indent': ['error', 2, { SwitchCase: 1 }],
+    'linebreak-style': ['error', 'unix'],
+    'eol-last': ['error', 'always'],
+    'no-trailing-spaces': 'error',
+    'no-multiple-empty-lines': ['error', { max: 1, maxEOF: 1 }],
+    'object-curly-spacing': ['error', 'always'],
+    'array-bracket-spacing': ['error', 'never'],
+    'computed-property-spacing': ['error', 'never'],
+    'space-in-parens': ['error', 'never'],
+    'space-before-function-paren': ['error', {
+      anonymous: 'always',
+      named: 'never',
+      asyncArrow: 'always'
+    }],
+    'keyword-spacing': 'error',
+    'space-before-blocks': 'error',
+    'space-infix-ops': 'error',
+    'newline-per-chained-call': ['error', { ignoreChainWithDepth: 2 }],
+    'max-len': ['error', {
+      code: 120,
+      ignoreComments: true,
+      ignoreStrings: true,
+      ignoreTemplateLiterals: true
+    }],
+    'no-debugger': 'error',
+    'no-alert': 'error',
+    'no-eval': 'error',
+    'no-implied-eval': 'error',
+    'no-script-url': 'error',
+    'consistent-return': 'error',
+    'default-case': 'error',
+    'no-fallthrough': 'error',
+    'no-multi-spaces': 'error',
+    'no-multi-str': 'error',
+    'no-return-assign': 'error',
+    'no-self-compare': 'error',
+    'no-sequences': 'error',
+    'no-throw-literal': 'error',
+    'no-unmodified-loop-condition': 'error',
+    'no-unused-expressions': 'error',
+    'no-useless-call': 'error',
+    'no-useless-concat': 'error',
+    'no-useless-return': 'error',
+    'no-void': 'error',
+    'prefer-promise-reject-errors': 'error',
+    'radix': 'error'
+  },
+  ignorePatterns: [
+    'node_modules/',
+    'dist/',
+    'coverage/',
+    '*.js'
+  ]
+};

@@ -1,0 +1,96 @@
+{
+  "name": "pathfinder",
+  "version": "1.0.0",
+  "description": "Pathfinder项目打包配置",
+  "packaging": {
+    "default_mode": "full",
+    "output_directory": "./dist",
+    "temp_cleanup": true,
+    "integrity_check": true,
+    "config_validation": true,
+    "size_comparison": true
+  },
+  "exclude_patterns": {
+    "base": [
+      "node_modules/**",
+      ".git/**",
+      "*.log",
+      "*.tmp",
+      ".DS_Store",
+      "Thumbs.db",
+      ".env.local",
+      ".env.*.local",
+      "coverage/**",
+      ".nyc_output/**",
+      "dist/temp_*",
+      "tmp/**",
+      "logs/**",
+      "data/postgres/**",
+      "data/redis/**",
+      "backups/**",
+      ".cache/**",
+      ".parcel-cache/**",
+      ".vscode/**",
+      ".idea/**",
+      "*.swp",
+      "*.swo",
+      "*~"
+    ],
+    "minimal_additional": [
+      "*.md",
+      "docs/**",
+      "documentation/**",
+      "test*/**",
+      "spec/**",
+      "__tests__/**",
+      "e2e/**",
+      ".github/**",
+      "demo*/**",
+      "example*/**",
+      "showcase*/**",
+      "*.test.*",
+      "*.spec.*",
+      "playwright*",
+      "jest*",
+      "vitest*"
+    ],
+    "docker_additional": [
+      "*.md",
+      "!README.md",
+      "!DEPLOYMENT.md",
+      "test*/**",
+      "__tests__/**",
+      "e2e/**",
+      "demo*/**",
+      "example*/**",
+      "showcase*/**",
+      "*.test.*",
+      "*.spec.*",
+      "scripts/test*",
+      "scripts/demo*"
+    ]
+  },
+  "required_files": {
+    "frontend": [
+      "package.json",
+      "src/main.ts",
+      "src/App.vue",
+      "vite.config.ts",
+      "tsconfig.json"
+    ],
+    "backend": [
+      "package.json",
+      "src/app.ts",
+      "prisma/schema.prisma",
+      "tsconfig.json"
+    ],
+    "common": [
+      "docker-compose.yml",
+      "README.md"
+    ]
+  },
+  "size_thresholds": {
+    "warning_mb": 100,
+    "error_mb": 500
+  }
+}

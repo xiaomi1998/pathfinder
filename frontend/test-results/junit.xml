@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="87" failures="24" errors="0" time="0.035085709">
+    <testsuite name="src/utils/coordinate-transform.spec.ts" timestamp="2025-08-26T04:46:10.982Z" hostname="kedeMac-mini.local" tests="35" failures="20" errors="0" skipped="0" time="0.017453625">
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; PreciseCoordinateTransform &gt; constructor &gt; should initialize with default config" time="0.0007205">
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; PreciseCoordinateTransform &gt; constructor &gt; should create identity matrices initially" time="0.002430833">
+            <failure message="transform.getContext is not a function" type="TypeError">
+TypeError: transform.getContext is not a function
+ ❯ src/utils/coordinate-transform.spec.ts:43:35
+            </failure>
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; PreciseCoordinateTransform &gt; constructor &gt; should handle different device pixel ratios" time="0.00025125">
+            <failure message="t.getContext is not a function" type="TypeError">
+TypeError: t.getContext is not a function
+ ❯ src/utils/coordinate-transform.spec.ts:55:20
+ ❯ src/utils/coordinate-transform.spec.ts:53:17
+            </failure>
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; PreciseCoordinateTransform &gt; updateConfig &gt; should update config partially" time="0.0002085">
+            <failure message="transform.getContext is not a function" type="TypeError">
+TypeError: transform.getContext is not a function
+ ❯ src/utils/coordinate-transform.spec.ts:64:35
+            </failure>
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; PreciseCoordinateTransform &gt; updateConfig &gt; should only update matrices for significant changes" time="0.000383542">
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; PreciseCoordinateTransform &gt; updateConfig &gt; should handle multiple rapid updates efficiently" time="0.001684083">
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; PreciseCoordinateTransform &gt; coordinate transformations &gt; should transform screen to SVG coordinates" time="0.000104625">
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; PreciseCoordinateTransform &gt; coordinate transformations &gt; should transform SVG to canvas coordinates" time="0.000051833">
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; PreciseCoordinateTransform &gt; coordinate transformations &gt; should maintain precision in transformations" time="0.000166">
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; PreciseCoordinateTransform &gt; coordinate transformations &gt; should handle transformation chains" time="0.000161541">
+            <failure message="transform.canvasToNode is not a function" type="TypeError">
+TypeError: transform.canvasToNode is not a function
+ ❯ src/utils/coordinate-transform.spec.ts:129:37
+            </failure>
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; PreciseCoordinateTransform &gt; coordinate transformations &gt; should handle test transformation data" time="0.000215334">
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; PreciseCoordinateTransform &gt; zoom and pan operations &gt; should handle zoom transformations" time="0.000066583">
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; PreciseCoordinateTransform &gt; zoom and pan operations &gt; should handle pan transformations" time="0.000283167">
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; PreciseCoordinateTransform &gt; zoom and pan operations &gt; should handle rotation transformations" time="0.000075125">
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; PreciseCoordinateTransform &gt; performance optimization &gt; should cache transformation matrices" time="0.000744666">
+            <failure message="actual value must be number or bigint, received &quot;undefined&quot;" type="TypeError">
+TypeError: actual value must be number or bigint, received &quot;undefined&quot;
+ ❯ src/utils/coordinate-transform.spec.ts:211:27
+            </failure>
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; PreciseCoordinateTransform &gt; performance optimization &gt; should handle high-frequency transformations" time="0.003240667">
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; DragCoordinateCalculator &gt; should calculate drag delta accurately" time="0.0012955">
+            <failure message="Cannot read properties of undefined (reading &apos;x&apos;)" type="TypeError">
+TypeError: Cannot read properties of undefined (reading &apos;x&apos;)
+ ❯ Vector2D.subtract src/utils/math-precision.ts:75:42
+ ❯ DragCoordinateCalculator.startDrag src/utils/coordinate-transform.ts:221:35
+ ❯ src/utils/coordinate-transform.spec.ts:246:18
+            </failure>
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; DragCoordinateCalculator &gt; should maintain precision during long drags" time="0.000124208">
+            <failure message="Cannot read properties of undefined (reading &apos;x&apos;)" type="TypeError">
+TypeError: Cannot read properties of undefined (reading &apos;x&apos;)
+ ❯ Vector2D.subtract src/utils/math-precision.ts:75:42
+ ❯ DragCoordinateCalculator.startDrag src/utils/coordinate-transform.ts:221:35
+ ❯ src/utils/coordinate-transform.spec.ts:255:18
+            </failure>
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; DragCoordinateCalculator &gt; should handle zoom during drag" time="0.000088916">
+            <failure message="Cannot read properties of undefined (reading &apos;x&apos;)" type="TypeError">
+TypeError: Cannot read properties of undefined (reading &apos;x&apos;)
+ ❯ Vector2D.subtract src/utils/math-precision.ts:75:42
+ ❯ DragCoordinateCalculator.startDrag src/utils/coordinate-transform.ts:221:35
+ ❯ src/utils/coordinate-transform.spec.ts:271:18
+            </failure>
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; BoundaryConstraint &gt; should constrain point within bounds" time="0.000112375">
+            <failure message="Cannot read properties of undefined (reading &apos;clone&apos;)" type="TypeError">
+TypeError: Cannot read properties of undefined (reading &apos;clone&apos;)
+ ❯ new BoundaryConstraint src/utils/coordinate-transform.ts:313:23
+ ❯ src/utils/coordinate-transform.spec.ts:292:20
+            </failure>
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; BoundaryConstraint &gt; should not modify points inside bounds" time="0.000080708">
+            <failure message="Cannot read properties of undefined (reading &apos;clone&apos;)" type="TypeError">
+TypeError: Cannot read properties of undefined (reading &apos;clone&apos;)
+ ❯ new BoundaryConstraint src/utils/coordinate-transform.ts:313:23
+ ❯ src/utils/coordinate-transform.spec.ts:292:20
+            </failure>
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; BoundaryConstraint &gt; should handle edge cases" time="0.000074583">
+            <failure message="Cannot read properties of undefined (reading &apos;clone&apos;)" type="TypeError">
+TypeError: Cannot read properties of undefined (reading &apos;clone&apos;)
+ ❯ new BoundaryConstraint src/utils/coordinate-transform.ts:313:23
+ ❯ src/utils/coordinate-transform.spec.ts:292:20
+            </failure>
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; GridSnapper &gt; should snap to grid points" time="0.000092041">
+            <failure message="gridSize.clone is not a function" type="TypeError">
+TypeError: gridSize.clone is not a function
+ ❯ new GridSnapper src/utils/coordinate-transform.ts:399:30
+ ❯ src/utils/coordinate-transform.spec.ts:326:17
+            </failure>
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; GridSnapper &gt; should snap to nearest grid intersection" time="0.000075416">
+            <failure message="gridSize.clone is not a function" type="TypeError">
+TypeError: gridSize.clone is not a function
+ ❯ new GridSnapper src/utils/coordinate-transform.ts:399:30
+ ❯ src/utils/coordinate-transform.spec.ts:326:17
+            </failure>
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; GridSnapper &gt; should handle negative coordinates" time="0.000075042">
+            <failure message="gridSize.clone is not a function" type="TypeError">
+TypeError: gridSize.clone is not a function
+ ❯ new GridSnapper src/utils/coordinate-transform.ts:399:30
+ ❯ src/utils/coordinate-transform.spec.ts:326:17
+            </failure>
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; GridSnapper &gt; should maintain sub-pixel precision when not snapping" time="0.000076875">
+            <failure message="gridSize.clone is not a function" type="TypeError">
+TypeError: gridSize.clone is not a function
+ ❯ new GridSnapper src/utils/coordinate-transform.ts:399:30
+ ❯ src/utils/coordinate-transform.spec.ts:326:17
+            </failure>
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; TouchAwareDragCalculator &gt; should calibrate for touch precision" time="0.000159333">
+            <failure message="touchCalculator.calibrateTouch is not a function" type="TypeError">
+TypeError: touchCalculator.calibrateTouch is not a function
+ ❯ src/utils/coordinate-transform.spec.ts:378:23
+            </failure>
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; TouchAwareDragCalculator &gt; should adjust coordinates based on touch pressure" time="0.000097416">
+            <failure message="touchCalculator.adjustForTouchPressure is not a function" type="TypeError">
+TypeError: touchCalculator.adjustForTouchPressure is not a function
+ ❯ src/utils/coordinate-transform.spec.ts:386:40
+            </failure>
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; TouchAwareDragCalculator &gt; should handle multi-touch scenarios" time="0.000092458">
+            <failure message="touchCalculator.processMultiTouch is not a function" type="TypeError">
+TypeError: touchCalculator.processMultiTouch is not a function
+ ❯ src/utils/coordinate-transform.spec.ts:396:38
+            </failure>
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; factory functions &gt; createStandardTransform should create configured transform" time="0.000468834">
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; factory functions &gt; createDragCalculator should create calculator with transform" time="0.000096083">
+            <failure message="element.getBoundingClientRect is not a function" type="TypeError">
+TypeError: element.getBoundingClientRect is not a function
+ ❯ createStandardTransform src/utils/coordinate-transform.ts:483:24
+ ❯ Module.createDragCalculator src/utils/coordinate-transform.ts:767:21
+ ❯ src/utils/coordinate-transform.spec.ts:413:26
+            </failure>
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; error handling and edge cases &gt; should handle invalid zoom values" time="0.000346625">
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; error handling and edge cases &gt; should handle extreme coordinate values" time="0.000079958">
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; error handling and edge cases &gt; should handle NaN and Infinity values" time="0.001307333">
+        </testcase>
+        <testcase classname="src/utils/coordinate-transform.spec.ts" name="Coordinate Transform System &gt; memory management &gt; should not leak memory with many transformations" time="0.001077167">
+            <failure message="transform.canvasToNode is not a function" type="TypeError">
+TypeError: transform.canvasToNode is not a function
+ ❯ src/utils/coordinate-transform.spec.ts:455:19
+ ❯ src/utils/coordinate-transform.spec.ts:452:14
+            </failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/utils/math-precision.spec.ts" timestamp="2025-08-26T04:46:10.986Z" hostname="kedeMac-mini.local" tests="51" failures="3" errors="0" skipped="0" time="0.017632084">
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; PRECISION constants &gt; should have correct precision values" time="0.000535125">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; PRECISION constants &gt; should be immutable" time="0.003551041">
+            <failure message="expected [Function] to throw an error" type="AssertionError">
+AssertionError: expected [Function] to throw an error
+ ❯ src/utils/math-precision.spec.ts:25:10
+            </failure>
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; isEqual function &gt; should compare numbers with default epsilon" time="0.000118">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; isEqual function &gt; should use custom epsilon when provided" time="0.00007975">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; isEqual function &gt; should handle edge cases" time="0.001082125">
+            <failure message="expected false to be true // Object.is equality" type="AssertionError">
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/utils/math-precision.spec.ts:43:43
+            </failure>
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; isEqual function &gt; should be performant" time="0.001056083">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; preciseRound function &gt; should round to default precision" time="0.000086209">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; preciseRound function &gt; should round to custom precision" time="0.0000495">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; preciseRound function &gt; should handle edge cases" time="0.000142">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; preciseRound function &gt; should handle floating point precision issues" time="0.000060334">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; preciseRound function &gt; should validate precision test cases" time="0.000103291">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; constructor and getters &gt; should create vector with default values" time="0.000074666">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; constructor and getters &gt; should create vector with given values" time="0.000044875">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; constructor and getters &gt; should round values during construction" time="0.000045875">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; constructor and getters &gt; should handle test vector data" time="0.000168">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; setters &gt; should set x value with precision rounding" time="0.000038">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; setters &gt; should set y value with precision rounding" time="0.000035875">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; clone method &gt; should create independent copy" time="0.000179375">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; set method &gt; should set both values and return self" time="0.000075458">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; set method &gt; should round values when setting" time="0.00005025">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; arithmetic operations &gt; add should return new vector with sum" time="0.000120166">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; arithmetic operations &gt; subtract should return new vector with difference" time="0.00005075">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; arithmetic operations &gt; multiply should scale vector by scalar" time="0.0000565">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; arithmetic operations &gt; divide should scale vector by inverse scalar" time="0.000050084">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; arithmetic operations &gt; divide should throw error for zero division" time="0.000133916">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; arithmetic operations &gt; should handle precision in arithmetic operations" time="0.000049666">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; length and distance methods &gt; length should return vector magnitude" time="0.000036333">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; length and distance methods &gt; lengthSquared should return squared magnitude" time="0.000033833">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; length and distance methods &gt; distanceTo should return distance between vectors" time="0.000035959">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; length and distance methods &gt; distanceToSquared should return squared distance" time="0.000033041">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; length and distance methods &gt; should handle zero vectors" time="0.000042666">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; normalize method &gt; should return unit vector" time="0.000080583">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; normalize method &gt; should handle zero vector" time="0.000046583">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; normalize method &gt; should not modify original vector" time="0.000047708">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; dot and cross products &gt; dot product should return scalar" time="0.000037292">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; dot and cross products &gt; cross product should return scalar (2D)" time="0.000036">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; dot and cross products &gt; dot product with itself should equal length squared" time="0.000032">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; dot and cross products &gt; cross product with itself should be zero" time="0.000032333">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; performance tests &gt; constructor should be fast" time="0.00162175">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; performance tests &gt; arithmetic operations should be fast" time="0.003011834">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; performance tests &gt; batch operations should maintain precision" time="0.000520166">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; edge cases and error handling &gt; should handle very small numbers" time="0.000334833">
+            <failure message="expected 0 to be greater than 0" type="AssertionError">
+AssertionError: expected 0 to be greater than 0
+ ❯ src/utils/math-precision.spec.ts:335:31
+            </failure>
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; edge cases and error handling &gt; should handle very large numbers" time="0.000054916">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; edge cases and error handling &gt; should handle negative numbers" time="0.00005775">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; edge cases and error handling &gt; should maintain precision with repeated operations" time="0.000257875">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; memory and garbage collection &gt; should not leak memory with many operations" time="0.002231458">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; mathematical properties &gt; should satisfy commutative property for addition" time="0.000049417">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; mathematical properties &gt; should satisfy associative property for addition" time="0.000047417">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; Vector2D class &gt; mathematical properties &gt; should satisfy distributive property for scalar multiplication" time="0.000042042">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; sub-pixel precision &gt; should maintain sub-pixel precision in calculations" time="0.000036584">
+        </testcase>
+        <testcase classname="src/utils/math-precision.spec.ts" name="Math Precision System &gt; sub-pixel precision &gt; should handle sub-pixel movements accurately" time="0.000058709">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/utils/performance-optimizer.spec.ts" timestamp="2025-08-26T04:46:10.988Z" hostname="kedeMac-mini.local" tests="1" failures="1" errors="0" skipped="0" time="0">
+        <testcase classname="src/utils/performance-optimizer.spec.ts" name="src/utils/performance-optimizer.spec.ts" time="0">
+            <failure message="Transform failed with 1 error:
+/Users/kechen/Desktop/Pathfinder/frontend/src/utils/performance-optimizer.ts:291:4: ERROR: Syntax error &quot;n&quot;" type="Error">
+Error: Transform failed with 1 error:
+/Users/kechen/Desktop/Pathfinder/frontend/src/utils/performance-optimizer.ts:291:4: ERROR: Syntax error &quot;n&quot;
+  Plugin: vite:esbuild
+  File: /Users/kechen/Desktop/Pathfinder/frontend/src/utils/performance-optimizer.ts:291:4
+  
+  Syntax error &quot;n&quot;
+  289|        });
+  290|      }
+  291|    }\n  \n  /**\n   * 添加性能警告\n   */\n  private addWarning(warning: Omit&lt;PerformanceWarning, &apos;timestamp&apos;&gt;): void {\n    const fullWarning: PerformanceWarning = {\n      ...warning,\n      timestamp: performance.now()\n    };\n    \n    this.warnings.push(fullWarning);\n    \n    // 限制警告数量\n    if (this.warnings.length &gt; 50) {\n      this.warnings.shift();\n    }\n    \n    // 通知监听器\n    for (const callback of this.warningCallbacks) {\n      callback(fullWarning);\n    }\n    \n    // 控制台输出\n    const level = warning.level === &apos;critical&apos; ? &apos;error&apos; : warning.level === &apos;warning&apos; ? &apos;warn&apos; : &apos;info&apos;;\n    console[level](`[Performance ${warning.category.toUpperCase()}] ${warning.message} - ${warning.suggestion}`);\n  }\n  \n  /**\n   * 添加警告监听器\n   */\n  onWarning(callback: (warning: PerformanceWarning) =&gt; void): void {\n    this.warningCallbacks.add(callback);\n  }\n  \n  /**\n   * 移除警告监听器\n   */\n  offWarning(callback: (warning: PerformanceWarning) =&gt; void): void {\n    this.warningCallbacks.delete(callback);\n  }\n  \n  /**\n   * 获取最近的警告\n   */\n  getRecentWarnings(count = 10): PerformanceWarning[] {\n    return this.warnings.slice(-count);\n  }\n  \n  /**\n   * 清理警告\n   */\n  clearWarnings(): void {\n    this.warnings.length = 0;\n  }\n  \n  /**\n   * 运行基准测试\n   */\n  async runBenchmarks(): Promise&lt;{\n    dragSuite: Awaited&lt;ReturnType&lt;typeof this.benchmarkTester.runDragBenchmarkSuite&gt;&gt;;\n    report: string;\n  }&gt; {\n    console.log(&apos;Running performance benchmarks...&apos;);\n    \n    const dragSuite = await this.benchmarkTester.runDragBenchmarkSuite();\n    const report = this.benchmarkTester.generateBenchmarkReport();\n    \n    console.log(&apos;Benchmarks completed&apos;);\n    return { dragSuite, report };\n  }\n  \n  /**\n   * 开始拖拽性能分析\n   */\n  startDragAnalysis(): void {\n    this.dragAnalyzer.startDragSession();\n  }\n  \n  /**\n   * 结束拖拽性能分析\n   */\n  endDragAnalysis(): ReturnType&lt;typeof this.dragAnalyzer.endDragSession&gt; {\n    return this.dragAnalyzer.endDragSession();\n  }\n  \n  /**\n   * 记录拖拽帧时间\n   */\n  recordDragFrameTime(frameTime: number): void {\n    this.dragAnalyzer.recordFrameTime(frameTime);\n  }\n  \n  /**\n   * 记录拖拽位置\n   */\n  recordDragPosition(x: number, y: number): void {\n    this.dragAnalyzer.recordPosition(x, y);\n  }\n  \n  /**\n   * 针对后台运行优化\n   */\n  private optimizeForBackground(): void {\n    console.log(&apos;Optimizing for background...&apos;);\n    \n    // 降低监控频率\n    if (this.config.enableMemoryOptimization) {\n      memoryManager.optimizeMemory();\n    }\n    \n    // 清理缓存\n    if (this.config.enableCacheOptimization) {\n      cacheOptimizer.optimizeMemoryUsage();\n    }\n    \n    // 减少渲染任务优先级\n    // renderOptimizer 会自动处理页面可见性\n  }\n  \n  /**\n   * 针对前台运行优化\n   */\n  private optimizeForForeground(): void {\n    console.log(&apos;Optimizing for foreground...&apos;);\n    \n    // 恢复正常监控频率\n    // 预加载常用资源\n    // 恢复正常渲染优先级\n  }\n  \n  /**\n   * 获取性能历史\n   */\n  getPerformanceHistory(): ComprehensivePerformanceStats[] {\n    return [...this.performanceHistory];\n  }\n  \n  /**\n   * 获取当前性能状态\n   */\n  getCurrentPerformanceState(): ComprehensivePerformanceStats {\n    return this.collectComprehensiveStats();\n  }\n  \n  /**\n   * 生成性能报告\n   */\n  generatePerformanceReport(): string {\n    const stats = this.collectComprehensiveStats();\n    \n    let report = &apos;性能优化系统报告\\n==================\\n\\n&apos;;\n    \n    // 内存报告\n    if (stats.memory.totalHeapSize &gt; 0) {\n      report += &apos;内存使用情况:\\n&apos;;\n      report += `总堆大小: ${stats.memory.totalHeapSize.toFixed(1)} MB\\n`;\n      report += `已使用: ${stats.memory.usedHeapSize.toFixed(1)} MB\\n`;\n      report += `使用率: ${(stats.memory.usedHeapSize / stats.memory.heapSizeLimit * 100).toFixed(1)}%\\n\\n`;\n    }\n    \n    // 渲染报告\n    report += &apos;渲染性能:\\n&apos;;\n    report += `平均FPS: ${stats.rendering.averageFPS}\\n`;\n    report += `帧时间: ${stats.rendering.frameTime.toFixed(2)}ms\\n`;\n    report += `已执行任务: ${stats.rendering.tasksExecuted}\\n`;\n    report += `GPU加速元素: ${stats.rendering.gpuAccelerated}\\n\\n`;\n    \n    // 事件报告\n    report += &apos;事件处理:\\n&apos;;\n    report += `总事件数: ${stats.events.totalEvents}\\n`;\n    report += `已处理: ${stats.events.processedEvents}\\n`;\n    report += `平均处理时间: ${stats.events.averageProcessingTime.toFixed(2)}ms\\n\\n`;\n    \n    // 实时性能\n    report += &apos;实时性能:\\n&apos;;\n    report += `平均FPS: ${stats.realtime.avgFps}\\n`;\n    report += `平均帧时间: ${stats.realtime.avgFrameTime.toFixed(2)}ms\\n`;\n    report += `丢帧数: ${stats.realtime.droppedFrames}\\n\\n`;\n    \n    // 缓存报告\n    report += cacheOptimizer.generateCacheReport();\n    \n    // 警告汇总\n    const recentWarnings = this.getRecentWarnings();\n    if (recentWarnings.length &gt; 0) {\n      report += &apos;\\n近期警告:\\n&apos;;\n      for (const warning of recentWarnings.slice(-5)) {\n        report += `[${warning.level.toUpperCase()}] ${warning.message}\\n`;\n      }\n    }\n    \n    return report;\n  }\n  \n  /**\n   * 更新配置\n   */\n  updateConfig(updates: Partial&lt;PerformanceConfig&gt;): void {\n    Object.assign(this.config, updates);\n    console.log(&apos;Performance optimizer config updated:&apos;, updates);\n  }\n  \n  /**\n   * 获取配置\n   */\n  getConfig(): PerformanceConfig {\n    return { ...this.config };\n  }\n  \n  /**\n   * 强制垃圾回收\n   */\n  forceGarbageCollection(): void {\n    memoryManager.forceGarbageCollection();\n  }\n  \n  /**\n   * 清理所有资源\n   */\n  cleanup(): void {\n    console.log(&apos;Performance optimizer cleanup...&apos;);\n    \n    // 停止监控\n    this.stopMonitoring();\n    \n    // 清理定时器\n    for (const interval of this.cleanupIntervals.values()) {\n      clearInterval(interval);\n    }\n    this.cleanupIntervals.clear();\n    \n    // 清理各个优化系统\n    memoryManager.cleanup();\n    eventOptimizer.cleanup();\n    cacheOptimizer.cleanup();\n    renderOptimizer.destroy();\n    \n    // 清理性能监控器\n    this.performanceMonitor.stopMonitoring();\n    this.dragAnalyzer.clearData();\n    \n    // 清理数据\n    this.performanceHistory.length = 0;\n    this.warnings.length = 0;\n    this.warningCallbacks.clear();\n    \n    console.log(&apos;Performance optimizer cleanup completed&apos;);\n  }\n}\n\n// 创建全局性能监控器实例\nconst performanceMonitor = createPerformanceMonitor();\n\n// 导出单例\nexport const performanceOptimizer = PerformanceOptimizer.instance;\n\n// 便捷函数\nexport function startPerformanceMonitoring(): void {\n  performanceOptimizer.startMonitoring();\n}\n\nexport function stopPerformanceMonitoring(): void {\n  performanceOptimizer.stopMonitoring();\n}\n\nexport function getCurrentPerformanceStats(): ComprehensivePerformanceStats {\n  return performanceOptimizer.getCurrentPerformanceState();\n}\n\nexport function generatePerformanceReport(): string {\n  return performanceOptimizer.generatePerformanceReport();\n}\n\nexport function onPerformanceWarning(callback: (warning: PerformanceWarning) =&gt; void): void {\n  performanceOptimizer.onWarning(callback);\n}\n\nexport function runPerformanceBenchmarks() {\n  return performanceOptimizer.runBenchmarks();\n}
+     |      ^
+  
+ ❯ failureErrorWithLog node_modules/esbuild/lib/main.js:1472:15
+ ❯ node_modules/esbuild/lib/main.js:755:50
+ ❯ responseCallbacks.&lt;computed&gt; node_modules/esbuild/lib/main.js:622:9
+ ❯ handleIncomingPacket node_modules/esbuild/lib/main.js:677:12
+ ❯ Socket.readFromStdout node_modules/esbuild/lib/main.js:600:7
+            </failure>
+        </testcase>
+    </testsuite>
+</testsuites>

@@ -1,0 +1,439 @@
+version: '3.8'
+
+# Pathfinder 缩小版 - 生产级 Docker Compose 配置
+# 优化的轻量级部署方案，包含完整的数据持久化和健康检查
+
+services:
+  # ==========================================
+  # PostgreSQL 数据库 - 主数据存储
+  # ==========================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: pathfinder-mini-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pathfinder_db}
+      POSTGRES_USER: ${POSTGRES_USER:-pathfinder_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+      # 性能优化参数
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      # 数据持久化
+      - postgres_data:/var/lib/postgresql/data
+      # 数据库初始化脚本
+      - ./database/init-extensions.sql:/docker-entrypoint-initdb.d/01-extensions.sql
+      - ./database/init-constraints.sql:/docker-entrypoint-initdb.d/02-constraints.sql
+      - ./database/init-indexes.sql:/docker-entrypoint-initdb.d/03-indexes.sql
+      # PostgreSQL 配置
+      - ./database/postgresql.conf:/etc/postgresql/postgresql.conf
+      # 备份目录
+      - ./backups/postgres:/var/backups
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pathfinder_app} -d ${POSTGRES_DB:-pathfinder_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    command: |
+      postgres 
+      -c shared_preload_libraries=pg_stat_statements
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c work_mem=4MB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+    networks:
+      - pathfinder-mini-net
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # ==========================================
+  # Redis 缓存 - 会话和缓存存储
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: pathfinder-mini-redis
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      # 数据持久化
+      - redis_data:/data
+      # Redis 配置
+      - ./database/redis.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: |
+      sh -c 'redis-server /usr/local/etc/redis/redis.conf 
+      --requirepass "$$REDIS_PASSWORD"
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 128mb
+      --maxmemory-policy allkeys-lru'
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - pathfinder-mini-net
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.2'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+  # ==========================================
+  # 后端 API 服务
+  # ==========================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+      args:
+        NODE_ENV: production
+    image: pathfinder-mini-backend:latest
+    container_name: pathfinder-mini-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # 应用环境
+      NODE_ENV: production
+      PORT: 3000
+      
+      # 数据库连接
+      DATABASE_URL: postgresql://${POSTGRES_USER:-pathfinder_app}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-pathfinder_db}?schema=public&connection_limit=10&pool_timeout=20
+      
+      # Redis 连接
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      
+      # 安全配置
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
+      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-12}
+      
+      # AI 配置
+      AI_API_KEY: ${AI_API_KEY}
+      AI_MODEL: ${AI_MODEL:-gemini-pro}
+      
+      # CORS 配置
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost}
+      CORS_CREDENTIALS: true
+      
+      # 日志配置
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_FORMAT: json
+      
+      # 应用配置
+      MAX_FILE_SIZE: ${MAX_FILE_SIZE:-10485760}
+      RATE_LIMIT_WINDOW: ${RATE_LIMIT_WINDOW:-900000}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-100}
+      
+    volumes:
+      # 日志目录
+      - ./logs/backend:/app/logs
+      # 上传文件目录
+      - ./uploads:/app/uploads
+      # 临时文件
+      - ./tmp:/app/tmp
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - pathfinder-mini-net
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # ==========================================
+  # 前端 Web 服务
+  # ==========================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        API_BASE_URL: ${API_BASE_URL:-http://localhost:3000}
+        NODE_ENV: production
+    image: pathfinder-mini-frontend:latest
+    container_name: pathfinder-mini-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      # Nginx 配置
+      NGINX_PORT: 80
+      NGINX_SERVER_NAME: ${DOMAIN_NAME:-localhost}
+      
+      # 应用配置
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:3000}
+      WS_BASE_URL: ${WS_BASE_URL:-ws://localhost:3000}
+      
+    volumes:
+      # Nginx 日志
+      - ./logs/nginx:/var/log/nginx
+      # 静态文件缓存
+      - ./cache/nginx:/var/cache/nginx
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - pathfinder-mini-net
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.2'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+  # ==========================================
+  # 数据库管理工具 (可选，开发时启用)
+  # ==========================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pathfinder-mini-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@pathfinder.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./database/pgadmin-servers.json:/pgadmin4/servers.json
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    depends_on:
+      - postgres
+    networks:
+      - pathfinder-mini-net
+    profiles:
+      - dev
+      - debug
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.3'
+
+  # ==========================================
+  # Redis Commander (可选，开发时启用)
+  # ==========================================
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: pathfinder-mini-redis-ui
+    restart: unless-stopped
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      HTTP_USER: ${REDIS_UI_USER:-admin}
+      HTTP_PASSWORD: ${REDIS_UI_PASSWORD}
+    ports:
+      - "${REDIS_UI_PORT:-8081}:8081"
+    depends_on:
+      - redis
+    networks:
+      - pathfinder-mini-net
+    profiles:
+      - dev
+      - debug
+
+  # ==========================================
+  # 监控服务 - Prometheus (轻量级监控)
+  # ==========================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: pathfinder-mini-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--storage.tsdb.retention.time=7d'
+      - '--storage.tsdb.retention.size=1GB'
+    volumes:
+      - ./monitoring/prometheus-mini.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    networks:
+      - pathfinder-mini-net
+    profiles:
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.3'
+
+  # ==========================================
+  # 日志聚合 - Loki (轻量级日志收集)
+  # ==========================================
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: pathfinder-mini-loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./monitoring/loki-config.yml:/etc/loki/local-config.yaml
+      - loki_data:/tmp/loki
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+    networks:
+      - pathfinder-mini-net
+    profiles:
+      - monitoring
+
+  # ==========================================
+  # 定时任务服务
+  # ==========================================
+  scheduler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.scheduler
+    image: pathfinder-mini-scheduler:latest
+    container_name: pathfinder-mini-scheduler
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-pathfinder_app}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-pathfinder_db}?schema=public
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      - ./logs/scheduler:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - pathfinder-mini-net
+    profiles:
+      - production
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.2'
+
+# ==========================================
+# 网络配置
+# ==========================================
+networks:
+  pathfinder-mini-net:
+    driver: bridge
+    name: pathfinder-mini-network
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.25.0.0/16
+          gateway: 172.25.0.1
+
+# ==========================================
+# 数据卷配置
+# ==========================================
+volumes:
+  # 主要数据存储
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/postgres
+  
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/redis
+  
+  # 监控数据
+  prometheus_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/prometheus
+  
+  loki_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/loki
+  
+  # 管理工具数据
+  pgadmin_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/pgadmin
+
+# ==========================================
+# 扩展配置说明
+# ==========================================
+
+# 使用方式：
+# 1. 基础运行:
+#    docker-compose -f docker-compose.mini.yml up -d
+#
+# 2. 包含开发工具:
+#    docker-compose -f docker-compose.mini.yml --profile dev up -d
+#
+# 3. 包含监控:
+#    docker-compose -f docker-compose.mini.yml --profile monitoring up -d
+#
+# 4. 生产环境(包含调度器):
+#    docker-compose -f docker-compose.mini.yml --profile production up -d
+#
+# 5. 完整功能(开发+监控):
+#    docker-compose -f docker-compose.mini.yml --profile dev --profile monitoring up -d
+
+# 资源要求：
+# - 最小: 2GB RAM, 2 CPU cores, 10GB storage
+# - 推荐: 4GB RAM, 4 CPU cores, 50GB storage
+# - 生产: 8GB RAM, 4+ CPU cores, 100GB+ storage

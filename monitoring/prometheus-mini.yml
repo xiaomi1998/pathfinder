@@ -1,0 +1,98 @@
+# ==========================================
+# Pathfinder Mini - Prometheus 配置
+# ==========================================
+# 轻量级监控配置，专为缩小版设计
+
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+  scrape_timeout: 10s
+
+# 告警规则文件
+rule_files:
+  - "alert_rules/*.yml"
+
+# 告警管理器配置 (可选)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# 监控目标配置
+scrape_configs:
+  # Prometheus 自身监控
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # Node Exporter (系统监控)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # PostgreSQL 监控
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    # 需要安装 postgres_exporter
+
+  # Redis 监控
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    # 需要安装 redis_exporter
+
+  # 后端应用监控
+  - job_name: 'pathfinder-backend'
+    static_configs:
+      - targets: ['backend:3000']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    honor_labels: true
+
+  # Nginx 监控
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['frontend:80']
+    scrape_interval: 30s
+    metrics_path: /nginx_status
+    # 需要配置 nginx stub_status
+
+  # Docker 容器监控 (cAdvisor)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+# 监控数据存储配置
+storage:
+  tsdb:
+    retention.time: 7d
+    retention.size: 1GB
+    path: /prometheus
+    wal-compression: true
+
+# 远程存储配置 (可选)
+# remote_write:
+#   - url: "http://remote-storage:8086/api/v1/prom/write"
+#     queue_config:
+#       max_samples_per_send: 1000
+#       max_shards: 200
+#       capacity: 2500
+
+# Web 界面配置
+web:
+  enable-lifecycle: true
+  enable-admin-api: true
+  max-connections: 512
+  read-timeout: 30s

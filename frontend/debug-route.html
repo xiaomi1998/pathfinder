@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>路由调试</title>
+</head>
+<body>
+    <h1>Pathfinder 路由调试</h1>
+    <div>
+        <h3>前端路由测试：</h3>
+        <p><a href="http://localhost:3000/funnels" target="_blank">漏斗列表页面</a></p>
+        <p><a href="http://localhost:3000/funnels/create" target="_blank">创建漏斗页面</a></p>
+        <p><a href="http://localhost:3000/funnels/a95f09ea-5fc4-406e-82a8-650c2a80f651/edit" target="_blank">编辑测试漏斗</a></p>
+        <p><a href="http://localhost:3000/login" target="_blank">登录页面</a></p>
+    </div>
+    
+    <div>
+        <h3>API状态测试：</h3>
+        <button onclick="testAPI()">测试API连通性</button>
+        <div id="apiResults"></div>
+    </div>
+    
+    <script>
+        async function testAPI() {
+            const results = document.getElementById('apiResults');
+            results.innerHTML = '<p>测试中...</p>';
+            
+            try {
+                // 测试后端健康检查
+                const healthResponse = await fetch('http://localhost:8080/health');
+                const healthData = await healthResponse.json();
+                results.innerHTML = '<p>✅ 后端API正常运行</p>';
+                
+                // 测试前端静态资源
+                const frontendResponse = await fetch('http://localhost:3000/');
+                results.innerHTML += '<p>✅ 前端服务正常</p>';
+                
+                results.innerHTML += '<p><strong>所有服务运行正常</strong></p>';
+                results.innerHTML += '<p>请在前端界面登录后测试按钮功能</p>';
+                
+            } catch (error) {
+                results.innerHTML = `<p>❌ 错误: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

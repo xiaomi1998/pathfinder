@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Alignment System - Integration Test</title>
+  <script type="module">
+    import { createApp } from 'vue'
+    import SmartAlignmentDemo from './src/components/demos/SmartAlignmentDemo.vue'
+    
+    const app = createApp(SmartAlignmentDemo)
+    app.mount('#app')
+  </script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    
+    #app {
+      min-height: 100vh;
+    }
+    
+    .test-header {
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      text-align: center;
+      color: white;
+      margin-bottom: 20px;
+    }
+    
+    .test-header h1 {
+      margin: 0;
+      font-size: 2.5rem;
+      font-weight: 700;
+    }
+    
+    .test-header p {
+      margin: 10px 0 0 0;
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-header">
+    <h1>🎯 Smart Alignment System</h1>
+    <p>Agent 5: 智能对齐和磁性吸附专家 - Integration Test</p>
+  </div>
+  <div id="app"></div>
+</body>
+</html>

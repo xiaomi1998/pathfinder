@@ -1,0 +1,228 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # 前端开发服务
+  # ==========================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: pathfinder-frontend-dev
+    platform: linux/amd64  # Mac M1/M2 兼容性
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - frontend_logs:/app/logs
+    environment:
+      - NODE_ENV=development
+      - VITE_API_BASE_URL=http://localhost:3001/api
+      - VITE_DEV_PORT=3000
+      - VITE_OPEN_BROWSER=true
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - pathfinder-dev-network
+
+  # ==========================================
+  # 后端开发服务
+  # ==========================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: pathfinder-backend-dev
+    platform: linux/amd64
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - backend_logs:/app/logs
+      - uploads:/app/uploads
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DATABASE_URL=postgresql://pathfinder:dev123@db:5432/pathfinder_dev
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=pathfinder-super-secret-jwt-key-dev-only-2024
+      - JWT_EXPIRES_IN=7d
+      - CORS_ORIGIN=http://localhost:3000
+      - LOG_LEVEL=debug
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - pathfinder-dev-network
+
+  # ==========================================
+  # PostgreSQL 数据库
+  # ==========================================
+  db:
+    image: postgres:15-alpine
+    container_name: pathfinder-db-dev
+    platform: linux/amd64
+    environment:
+      POSTGRES_DB: pathfinder_dev
+      POSTGRES_USER: pathfinder
+      POSTGRES_PASSWORD: dev123
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./database/init-simple.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./backups:/var/backups
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pathfinder -d pathfinder_dev"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - pathfinder-dev-network
+
+  # ==========================================
+  # Redis 缓存
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: pathfinder-redis-dev
+    platform: linux/amd64
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+      - ./redis-dev.conf:/usr/local/etc/redis/redis.conf
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+    networks:
+      - pathfinder-dev-network
+
+  # ==========================================
+  # 数据库管理工具 (可选)
+  # ==========================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pathfinder-pgadmin-dev
+    platform: linux/amd64
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@pathfinder.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - pathfinder-dev-network
+    profiles:
+      - tools
+
+  # ==========================================
+  # 开发监控工具 (可选)
+  # ==========================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: pathfinder-prometheus-dev
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - pathfinder-dev-network
+    profiles:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: pathfinder-grafana-dev
+    ports:
+      - "3010:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - pathfinder-dev-network
+    profiles:
+      - monitoring
+
+# ==========================================
+# 网络配置
+# ==========================================
+networks:
+  pathfinder-dev-network:
+    driver: bridge
+    name: pathfinder-dev-network
+
+# ==========================================
+# 数据卷
+# ==========================================
+volumes:
+  postgres_dev_data:
+    driver: local
+    name: pathfinder-postgres-dev-data
+  redis_dev_data:
+    driver: local
+    name: pathfinder-redis-dev-data
+  pgadmin_data:
+    driver: local
+    name: pathfinder-pgadmin-data
+  prometheus_data:
+    driver: local
+    name: pathfinder-prometheus-data
+  grafana_data:
+    driver: local
+    name: pathfinder-grafana-data
+  frontend_logs:
+    driver: local
+    name: pathfinder-frontend-logs
+  backend_logs:
+    driver: local
+    name: pathfinder-backend-logs
+  uploads:
+    driver: local
+    name: pathfinder-uploads

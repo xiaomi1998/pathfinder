@@ -1,0 +1,333 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "interviewer",
+      "email": "interviewer@pathfinder.com",
+      "role": "admin",
+      "isActive": true,
+      "createdAt": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": 2,
+      "username": "candidate",
+      "email": "candidate@pathfinder.com",
+      "role": "user",
+      "isActive": true,
+      "createdAt": "2024-01-15T00:00:00Z"
+    }
+  ],
+  
+  "funnels": [
+    {
+      "id": 1,
+      "userId": 1,
+      "name": "SaaS产品销售漏斗",
+      "description": "典型的SaaS产品销售转化流程，从潜在客户到付费用户",
+      "canvasData": {
+        "nodes": [
+          {
+            "id": "awareness-1",
+            "type": "awareness",
+            "position": { "x": 100, "y": 200 },
+            "data": { "label": "广告展示" }
+          },
+          {
+            "id": "acquisition-1",
+            "type": "acquisition",
+            "position": { "x": 300, "y": 200 },
+            "data": { "label": "网站访问" }
+          },
+          {
+            "id": "activation-1",
+            "type": "activation",
+            "position": { "x": 500, "y": 200 },
+            "data": { "label": "注册试用" }
+          },
+          {
+            "id": "activation-2",
+            "type": "activation",
+            "position": { "x": 700, "y": 200 },
+            "data": { "label": "产品演示" }
+          },
+          {
+            "id": "revenue-1",
+            "type": "revenue",
+            "position": { "x": 900, "y": 200 },
+            "data": { "label": "付费转化" }
+          },
+          {
+            "id": "retention-1",
+            "type": "retention",
+            "position": { "x": 1100, "y": 200 },
+            "data": { "label": "续费留存" }
+          }
+        ],
+        "edges": [
+          { "id": "e1", "source": "awareness-1", "target": "acquisition-1" },
+          { "id": "e2", "source": "acquisition-1", "target": "activation-1" },
+          { "id": "e3", "source": "activation-1", "target": "activation-2" },
+          { "id": "e4", "source": "activation-2", "target": "revenue-1" },
+          { "id": "e5", "source": "revenue-1", "target": "retention-1" }
+        ]
+      },
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2024-01-01T00:00:00Z"
+    }
+  ],
+
+  "nodes": [
+    {
+      "id": 1,
+      "funnelId": 1,
+      "nodeType": "awareness",
+      "label": "广告展示",
+      "positionX": 100,
+      "positionY": 200
+    },
+    {
+      "id": 2,
+      "funnelId": 1,
+      "nodeType": "acquisition",
+      "label": "网站访问",
+      "positionX": 300,
+      "positionY": 200
+    },
+    {
+      "id": 3,
+      "funnelId": 1,
+      "nodeType": "activation", 
+      "label": "注册试用",
+      "positionX": 500,
+      "positionY": 200
+    },
+    {
+      "id": 4,
+      "funnelId": 1,
+      "nodeType": "activation",
+      "label": "产品演示", 
+      "positionX": 700,
+      "positionY": 200
+    },
+    {
+      "id": 5,
+      "funnelId": 1,
+      "nodeType": "revenue",
+      "label": "付费转化",
+      "positionX": 900,
+      "positionY": 200
+    },
+    {
+      "id": 6,
+      "funnelId": 1,
+      "nodeType": "retention",
+      "label": "续费留存",
+      "positionX": 1100,
+      "positionY": 200
+    }
+  ],
+
+  "edges": [
+    {
+      "id": 1,
+      "funnelId": 1,
+      "sourceNodeId": 1,
+      "targetNodeId": 2
+    },
+    {
+      "id": 2,
+      "funnelId": 1,
+      "sourceNodeId": 2,
+      "targetNodeId": 3
+    },
+    {
+      "id": 3,
+      "funnelId": 1,
+      "sourceNodeId": 3,
+      "targetNodeId": 4
+    },
+    {
+      "id": 4,
+      "funnelId": 1,
+      "sourceNodeId": 4,
+      "targetNodeId": 5
+    },
+    {
+      "id": 5,
+      "funnelId": 1,
+      "sourceNodeId": 5,
+      "targetNodeId": 6
+    }
+  ],
+
+  "nodeData": [
+    {
+      "id": 1,
+      "nodeId": 1,
+      "weekStartDate": "2024-08-19T00:00:00Z",
+      "entryCount": 10000,
+      "convertedCount": 400,
+      "conversionRate": 0.04
+    },
+    {
+      "id": 2,
+      "nodeId": 2,
+      "weekStartDate": "2024-08-19T00:00:00Z", 
+      "entryCount": 400,
+      "convertedCount": 200,
+      "conversionRate": 0.50
+    },
+    {
+      "id": 3,
+      "nodeId": 3,
+      "weekStartDate": "2024-08-19T00:00:00Z",
+      "entryCount": 200,
+      "convertedCount": 100,
+      "conversionRate": 0.50
+    },
+    {
+      "id": 4,
+      "nodeId": 4,
+      "weekStartDate": "2024-08-19T00:00:00Z",
+      "entryCount": 100,
+      "convertedCount": 30,
+      "conversionRate": 0.30
+    },
+    {
+      "id": 5,
+      "nodeId": 5,
+      "weekStartDate": "2024-08-19T00:00:00Z",
+      "entryCount": 30,
+      "convertedCount": 25,
+      "conversionRate": 0.83
+    },
+    {
+      "id": 6,
+      "nodeId": 6,
+      "weekStartDate": "2024-08-19T00:00:00Z",
+      "entryCount": 25,
+      "convertedCount": 20,
+      "conversionRate": 0.80
+    }
+  ],
+
+  "analyticsData": {
+    "funnelPerformance": {
+      "totalEntries": 10000,
+      "totalConversions": 20,
+      "overallConversionRate": 0.002,
+      "biggestBottleneck": {
+        "nodeId": 4,
+        "nodeName": "产品演示",
+        "lossRate": 0.70,
+        "lostUsers": 70
+      },
+      "weeklyTrend": [
+        { "week": "2024-08-05", "conversions": 18, "entries": 9500 },
+        { "week": "2024-08-12", "conversions": 22, "entries": 10200 },
+        { "week": "2024-08-19", "conversions": 20, "entries": 10000 }
+      ]
+    },
+    "nodeAnalytics": [
+      {
+        "nodeId": 1,
+        "nodeName": "广告展示",
+        "avgConversionRate": 0.04,
+        "trend": "stable",
+        "benchmarkComparison": "above_average"
+      },
+      {
+        "nodeId": 2,
+        "nodeName": "网站访问",
+        "avgConversionRate": 0.50,
+        "trend": "improving",
+        "benchmarkComparison": "excellent"
+      },
+      {
+        "nodeId": 3,
+        "nodeName": "注册试用",
+        "avgConversionRate": 0.50,
+        "trend": "stable",
+        "benchmarkComparison": "good"
+      },
+      {
+        "nodeId": 4,
+        "nodeName": "产品演示",
+        "avgConversionRate": 0.30,
+        "trend": "declining",
+        "benchmarkComparison": "below_average"
+      },
+      {
+        "nodeId": 5,
+        "nodeName": "付费转化",
+        "avgConversionRate": 0.83,
+        "trend": "stable",
+        "benchmarkComparison": "excellent"
+      },
+      {
+        "nodeId": 6,
+        "nodeName": "续费留存",
+        "avgConversionRate": 0.80,
+        "trend": "improving",
+        "benchmarkComparison": "good"
+      }
+    ]
+  },
+
+  "aiCoachScenarios": [
+    {
+      "id": 1,
+      "scenario": "invitation_demo",
+      "title": "产品演示邀约",
+      "description": "模拟邀请潜在客户参加产品演示的对话场景",
+      "difficulty": "medium",
+      "customerPersona": {
+        "name": "王总",
+        "role": "技术总监",
+        "painPoints": ["时间紧张", "对新技术谨慎", "需要看到ROI"],
+        "objections": [
+          "我们现在很忙，没时间看演示",
+          "我们已经有类似的解决方案了",
+          "这种产品我见过很多，都差不多"
+        ]
+      },
+      "successCriteria": [
+        "成功约定具体的演示时间",
+        "了解客户的核心需求",
+        "建立初步信任关系"
+      ],
+      "tips": [
+        "强调演示的价值和针对性",
+        "提供灵活的时间选择",
+        "分享相关案例建立信任"
+      ]
+    },
+    {
+      "id": 2,
+      "scenario": "price_objection",
+      "title": "价格异议处理",
+      "description": "处理客户对产品价格的异议和疑虑",
+      "difficulty": "hard",
+      "customerPersona": {
+        "name": "李经理",
+        "role": "采购经理",
+        "painPoints": ["预算有限", "需要证明ROI", "担心隐性成本"],
+        "objections": [
+          "你们的价格太贵了",
+          "竞争对手比你们便宜很多",
+          "我们预算不够"
+        ]
+      },
+      "successCriteria": [
+        "展示产品的价值主张",
+        "提供灵活的定价方案",
+        "获得进一步沟通的机会"
+      ],
+      "tips": [
+        "关注价值而非价格",
+        "提供ROI计算",
+        "了解预算范围和决策流程"
+      ]
+    }
+  ]
+}
