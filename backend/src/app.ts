@@ -18,6 +18,8 @@ import edgeRoutes from '@/routes/edges';
 import aiRoutes from '@/routes/ai';
 import organizationRoutes from '@/routes/organizations';
 import metricDatasetRoutes from '@/routes/metric-datasets';
+import analysisRoutes from '@/routes/analysis';
+import adminRoutes from '@/routes/admin';
 
 // 导入中间件
 import { errorHandler } from '@/middleware/errorHandler';
@@ -153,6 +155,8 @@ app.use('/api/nodes', authMiddleware, nodeRoutes);
 app.use('/api/edges', authMiddleware, edgeRoutes);
 app.use('/api/ai', authMiddleware, aiRoutes);
 app.use('/api/metric-datasets', metricDatasetRoutes);
+app.use('/api/analysis', authMiddleware, analysisRoutes);
+app.use('/api/admin', adminRoutes);
 
 // API 根路径
 app.get('/api', (req, res) => {
@@ -169,6 +173,8 @@ app.get('/api', (req, res) => {
       edges: '/api/edges',
       ai: '/api/ai',
       metricDatasets: '/api/metric-datasets',
+      analysis: '/api/analysis',
+      admin: '/api/admin',
       health: '/health'
     }
   });

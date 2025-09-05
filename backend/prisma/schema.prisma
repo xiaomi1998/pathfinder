@@ -73,6 +73,8 @@ model User {
   funnelTemplates FunnelTemplate[]
   metricDatasets  MetricDataset[]
   adviceRules     AdviceRule[]
+  aiUsage         UserAiUsage[]
+  aiLimit         UserAiLimit?
 
   @@index([email])
   @@index([username])
@@ -245,9 +247,10 @@ model AiSession {
   endedAt        DateTime?       @map("ended_at") @db.Timestamptz(6)
 
   // 关联关系
-  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  funnel   Funnel?     @relation(fields: [funnelId], references: [id], onDelete: SetNull)
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  funnel   Funnel?       @relation(fields: [funnelId], references: [id], onDelete: SetNull)
   messages AiMessage[]
+  usage    UserAiUsage[]
 
   @@index([userId])
   @@index([createdAt])
@@ -432,6 +435,130 @@ model OrgUsageLimit {
   @@index([currentTemplates])
   @@index([currentUsers])
   @@map("org_usage_limits")
+}
+
+// ==============================================
+// 管理员用户模型
+// ==============================================
+model AdminUser {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  username     String   @unique @db.VarChar(50)
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  firstName    String?  @map("first_name") @db.VarChar(50)
+  lastName     String?  @map("last_name") @db.VarChar(50)
+  role         AdminRole @default(admin)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz(6)
+
+  // 关联关系
+  operationLogs AdminOperationLog[]
+
+  @@index([email])
+  @@index([username])
+  @@index([role])
+  @@index([isActive])
+  @@map("admin_users")
+}
+
+// 管理员角色枚举
+enum AdminRole {
+  super_admin
+  admin
+
+  @@map("admin_role")
+}
+
+// ==============================================
+// AI使用记录模型
+// ==============================================
+model UserAiUsage {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  sessionId    String?  @map("session_id") @db.Uuid
+  usageType    AiUsageType @map("usage_type") // chat, analysis, recommendation等
+  requestCount Int      @default(1) @map("request_count") // 请求次数
+  tokenCount   Int?     @map("token_count") // 消耗的token数量
+  cost         Decimal? @db.Decimal(10, 4) // 成本（美元）
+  usageDate    DateTime @map("usage_date") @db.Date // 使用日期
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // 关联关系
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aiSession AiSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([usageDate])
+  @@index([usageType])
+  @@index([userId, usageDate])
+  @@index([usageDate, usageType])
+  @@map("user_ai_usage")
+}
+
+// AI使用类型枚举
+enum AiUsageType {
+  chat
+  analysis
+  recommendation
+  general
+
+  @@map("ai_usage_type")
+}
+
+// ==============================================
+// AI使用限制模型
+// ==============================================
+model UserAiLimit {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String   @unique @map("user_id") @db.Uuid
+  dailyLimit      Int      @default(100) @map("daily_limit") // 每日限制
+  monthlyLimit    Int      @default(3000) @map("monthly_limit") // 每月限制
+  currentDaily    Int      @default(0) @map("current_daily") // 当日已使用
+  currentMonthly  Int      @default(0) @map("current_monthly") // 当月已使用
+  isActive        Boolean  @default(true) @map("is_active")
+  lastResetDaily  DateTime @default(now()) @map("last_reset_daily") @db.Date
+  lastResetMonthly DateTime @default(now()) @map("last_reset_monthly") @db.Date
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // 关联关系
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isActive])
+  @@index([lastResetDaily])
+  @@index([lastResetMonthly])
+  @@map("user_ai_limits")
+}
+
+// ==============================================
+// 管理员操作日志模型
+// ==============================================
+model AdminOperationLog {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  adminId     String      @map("admin_id") @db.Uuid
+  targetType  String      @map("target_type") @db.VarChar(50) // "user", "limits", "system"
+  targetId    String?     @map("target_id") @db.Uuid // 目标对象ID
+  operation   String      @db.VarChar(100) // 具体操作描述
+  oldValues   Json?       @map("old_values") @db.JsonB
+  newValues   Json?       @map("new_values") @db.JsonB
+  result      String?     @db.VarChar(20) // "success", "failed"
+  ipAddress   String?     @map("ip_address") @db.VarChar(45)
+  userAgent   String?     @map("user_agent") @db.Text
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // 关联关系
+  admin AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([targetType])
+  @@index([targetId])
+  @@index([createdAt])
+  @@index([result])
+  @@map("admin_operation_logs")
 }
 
 // ==============================================

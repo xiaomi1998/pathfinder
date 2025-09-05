@@ -1,12 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@stores/auth'
+import { useAdminStore } from '@stores/admin'
 import NProgress from 'nprogress'
 
 // Lazy load views
 const Home = () => import('@views/Home.vue')
 const Login = () => import('@views/auth/Login.vue')
 const Register = () => import('@views/auth/Register.vue')
+const Onboarding = () => import('@views/auth/Onboarding.vue')
 const Dashboard = () => import('@views/Dashboard.vue')
 const FunnelList = () => import('@views/funnels/FunnelList.vue')
 const FunnelDetail = () => import('@views/funnels/FunnelDetail.vue')
@@ -24,6 +26,17 @@ const AICoach = () => import('@views/ai/AICoach.vue')
 const PerformanceTest = () => import('@views/PerformanceTest.vue')
 const TestRouter = () => import('@views/TestRouter.vue')
 const NotFound = () => import('@views/errors/NotFound.vue')
+
+// Metric Dataset views
+const DataEntry = () => import('@views/metrics/DataEntry.vue')
+const AnalysisDetails = () => import('@views/analysis/AnalysisDetails.vue')
+const EnhancedAnalysisView = () => import('@views/analysis/EnhancedAnalysisView.vue')
+
+// Admin views
+const AdminLogin = () => import('@views/admin/AdminLogin.vue')
+const AdminDashboard = () => import('@views/admin/AdminDashboard.vue')
+const UserManagement = () => import('@views/admin/UserManagement.vue')
+const BenchmarkManagement = () => import('@views/admin/BenchmarkManagement.vue')
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -56,6 +69,16 @@ const routes: Array<RouteRecordRaw> = [
       requiresAuth: false,
       requiresGuest: true,
       transition: 'slide-left'
+    }
+  },
+  {
+    path: '/onboarding',
+    name: 'onboarding',
+    component: Onboarding,
+    meta: {
+      title: '账户设置 - Pathfinder',
+      requiresAuth: true,
+      transition: 'slide-right'
     }
   },
   {
@@ -159,6 +182,107 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   {
+    path: '/metrics',
+    name: 'metrics',
+    redirect: '/metrics/entry'
+  },
+  {
+    path: '/metrics/entry',
+    name: 'data-entry',
+    component: DataEntry,
+    meta: {
+      title: '数据录入 - Pathfinder',
+      requiresAuth: true,
+      transition: 'slide-right'
+    }
+  },
+  {
+    path: '/analysis/:id',
+    name: 'analysis-details',
+    component: AnalysisDetails,
+    meta: {
+      title: '分析详情 - Pathfinder',
+      requiresAuth: true,
+      transition: 'scale'
+    }
+  },
+  {
+    path: '/analysis/enhanced/:id?',
+    name: 'enhanced-analysis',
+    component: EnhancedAnalysisView,
+    meta: {
+      title: '智能分析 - Pathfinder',
+      requiresAuth: true,
+      transition: 'scale'
+    }
+  },
+  {
+    path: '/metrics/edit/:id',
+    name: 'metrics-edit',
+    component: DataEntry,
+    meta: {
+      title: '编辑数据集 - Pathfinder',
+      requiresAuth: true,
+      transition: 'slide-right'
+    }
+  },
+  // Admin routes
+  {
+    path: '/admin/login',
+    name: 'admin-login',
+    component: AdminLogin,
+    meta: {
+      title: '管理员登录 - Pathfinder',
+      requiresAuth: false,
+      requiresAdminGuest: true,
+      transition: 'fade'
+    }
+  },
+  {
+    path: '/admin',
+    redirect: '/admin/dashboard'
+  },
+  {
+    path: '/admin/dashboard',
+    name: 'admin-dashboard',
+    component: AdminDashboard,
+    meta: {
+      title: '管理员后台 - Pathfinder',
+      requiresAdminAuth: true,
+      transition: 'fade'
+    }
+  },
+  {
+    path: '/admin/users',
+    name: 'admin-users',
+    component: UserManagement,
+    meta: {
+      title: '用户管理 - Pathfinder',
+      requiresAdminAuth: true,
+      transition: 'slide-right'
+    }
+  },
+  {
+    path: '/admin/usage-stats',
+    name: 'admin-usage-stats',
+    component: AdminDashboard, // Reuse dashboard for now, can create separate view later
+    meta: {
+      title: '用量统计 - Pathfinder',
+      requiresAdminAuth: true,
+      transition: 'slide-right'
+    }
+  },
+  {
+    path: '/admin/benchmarks',
+    name: 'admin-benchmarks',
+    component: BenchmarkManagement,
+    meta: {
+      title: '基准数据管理 - Pathfinder',
+      requiresAdminAuth: true,
+      transition: 'slide-right'
+    }
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
     component: NotFound,
@@ -195,8 +319,28 @@ router.beforeEach(async (to, from, next) => {
   }
 
   const authStore = useAuthStore()
+  const adminStore = useAdminStore()
   
-  // Check authentication
+  // Handle admin authentication
+  if (to.meta.requiresAdminAuth) {
+    // Initialize admin auth if not already done
+    if (!adminStore.isAuthenticated) {
+      adminStore.initializeAuth()
+    }
+    
+    if (!adminStore.isAuthenticated) {
+      next({ name: 'admin-login', query: { redirect: to.fullPath } })
+      return
+    }
+  }
+  
+  // Redirect authenticated admin from admin guest pages
+  if (to.meta.requiresAdminGuest && adminStore.isAuthenticated) {
+    next({ name: 'admin-dashboard' })
+    return
+  }
+
+  // Check regular authentication
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'login', query: { redirect: to.fullPath } })
     return

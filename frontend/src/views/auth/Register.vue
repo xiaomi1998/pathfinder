@@ -286,7 +286,8 @@ const handleSubmit = async () => {
     
     if (result.success) {
       appStore.showSuccess('欢迎来到 Pathfinder！', '您的账户已成功创建。')
-      router.push('/dashboard')
+      // Redirect to onboarding to complete setup
+      router.push('/onboarding')
     } else {
       error.value = result.errorInfo || {
         type: 'unknown',

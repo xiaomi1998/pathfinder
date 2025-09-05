@@ -75,8 +75,57 @@ declare global {
 }
 
 export * from './user';
-export * from './funnel';
 export * from './node';
 export * from './edge';
-export * from './ai';
 export * from './organization';
+
+// Export funnel types with specific naming to avoid conflicts
+export type {
+  Funnel,
+  CreateFunnelInput,
+  UpdateFunnelInput,
+  FunnelResponse,
+  FunnelDetails,
+  FunnelStats,
+  FunnelPerformance,
+  CanvasData,
+  CanvasNode,
+  CanvasEdge,
+  FunnelTemplateData,
+  CreateFunnelTemplateRequest,
+  UpdateFunnelTemplateRequest,
+  FunnelTemplate,
+  FunnelTemplateListItem,
+  FunnelStageData,
+  FunnelMetricData,
+  BenchmarkData,
+  CreateBenchmarkDataRequest,
+  AdviceRule,
+  GeneratedRecommendation,
+  DiagnosticResult,
+  PeerComparisonResult,
+  ImprovementPotential,
+  AnalysisRequest as FunnelAnalysisRequest,
+  AnalysisResponse as FunnelAnalysisResponse
+} from './funnel';
+
+// Export AI types with specific naming to avoid conflicts
+export type {
+  AiProvider,
+  AiModel,
+  ChatMessage,
+  ChatSession,
+  ChatSessionWithMessages,
+  CreateChatSessionRequest,
+  SendMessageRequest,
+  AiAnalysisRequest,
+  AiAnalysisResponse,
+  AiRecommendation,
+  AnalysisResult as AiAnalysisResult,
+  OptimizationSuggestion,
+  PerformanceInsights,
+  CreateAnalysisRequest,
+  GetAnalysisRequest,
+  AnalysisRequest as AiAnalysisRequestLegacy,
+  AnalysisResponse as AiAnalysisResponseLegacy
+} from './ai';
