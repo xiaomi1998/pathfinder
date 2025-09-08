@@ -29,6 +29,8 @@ export class UserService {
       firstName: user.firstName,
       lastName: user.lastName,
       avatar: user.avatar,
+      organizationId: user.organizationId,
+      role: user.role,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       lastLoginAt: user.lastLoginAt,
