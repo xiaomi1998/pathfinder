@@ -1,7 +1,7 @@
 import express from 'express';
 import { MetricDatasetService } from '@/services/MetricDatasetService';
 import { authMiddleware as auth } from '@/middleware/auth';
-import { validateRequest } from '@/middleware/validateRequest';
+import { validate } from '@/middleware/joiValidation';
 import { 
   createFunnelMetricDatasetSchema, 
   analysisQuerySchema,
@@ -20,7 +20,7 @@ const metricDatasetService = new MetricDatasetService();
  */
 router.post('/', 
   auth, 
-  validateRequest({
+  validate({
     body: createFunnelMetricDatasetSchema
   }),
   async (req, res, next) => {
@@ -61,7 +61,7 @@ router.post('/',
  */
 router.get('/analysis/:id',
   auth,
-  validateRequest({
+  validate({
     params: uuidParamSchema,
     query: analysisQuerySchema
   }),
@@ -79,8 +79,8 @@ router.get('/analysis/:id',
         id,
         user.organizationId,
         {
-          includeBenchmarks: includeBenchmarks as boolean,
-          includeSuggestions: includeSuggestions as boolean
+          includeBenchmarks: includeBenchmarks === 'true' || includeBenchmarks === true,
+          includeSuggestions: includeSuggestions === 'true' || includeSuggestions === true
         }
       );
 
@@ -101,7 +101,7 @@ router.get('/analysis/:id',
  */
 router.get('/',
   auth,
-  validateRequest({
+  validate({
     query: datasetQuerySchema
   }),
   async (req, res, next) => {
@@ -116,8 +116,8 @@ router.get('/',
       const datasets = await metricDatasetService.getDatasetsByOrganization(
         user.organizationId,
         {
-          page: page as number,
-          limit: limit as number,
+          page: page ? parseInt(page.toString(), 10) : 1,
+          limit: limit ? parseInt(limit.toString(), 10) : 10,
           datasetType: datasetType as string,
           dataSource: dataSource as string
         }
@@ -140,7 +140,7 @@ router.get('/',
  */
 router.get('/:id',
   auth,
-  validateRequest({
+  validate({
     params: uuidParamSchema
   }),
   async (req, res, next) => {
@@ -178,7 +178,7 @@ router.get('/:id',
  */
 router.put('/:id',
   auth,
-  validateRequest({
+  validate({
     params: uuidParamSchema,
     // TODO: Add update validation schema when needed
   }),
@@ -215,7 +215,7 @@ router.put('/:id',
  */
 router.delete('/:id',
   auth,
-  validateRequest({
+  validate({
     params: uuidParamSchema
   }),
   async (req, res, next) => {

@@ -146,6 +146,9 @@ export class AdminService {
   constructor() {
     this.prisma = new PrismaClient();
     this.jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
+    if (!this.jwtSecret) {
+      throw new Error('JWT_SECRET environment variable is required');
+    }
     this.jwtExpiresIn = process.env.ADMIN_JWT_EXPIRES_IN || '24h';
   }
 
