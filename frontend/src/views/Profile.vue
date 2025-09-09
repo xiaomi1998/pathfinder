@@ -102,6 +102,72 @@
             </form>
           </div>
         </div>
+
+        <!-- Organization Information Section -->
+        <div class="bg-white shadow rounded-lg mt-6">
+          <div class="px-4 py-5 sm:p-6">
+            <div class="mb-6">
+              <h3 class="text-lg leading-6 font-medium text-gray-900">组织信息</h3>
+              <p class="mt-1 text-sm text-gray-500">
+                更新您的组织和公司信息
+              </p>
+            </div>
+
+            <OrganizationInfoForm
+              v-model="organizationForm"
+              @validation-change="onOrganizationValidationChange"
+            />
+
+            <div class="flex justify-end space-x-3 mt-6">
+              <button
+                type="button"
+                @click="resetOrganizationForm"
+                class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                重置
+              </button>
+              <button
+                type="button"
+                @click="updateOrganizationInfo"
+                :disabled="organizationLoading || !isOrganizationValid"
+                class="bg-indigo-600 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {{ organizationLoading ? '保存中...' : '保存组织信息' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Success/Error Messages -->
+        <div v-if="successMessage" class="mt-4 bg-green-50 border border-green-200 rounded-md p-4">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm font-medium text-green-800">
+                {{ successMessage }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="errorMessage" class="mt-4 bg-red-50 border border-red-200 rounded-md p-4">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm font-medium text-red-800">
+                {{ errorMessage }}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -109,8 +175,14 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
+import OrganizationInfoForm from '@/components/forms/OrganizationInfoForm.vue'
+import { organizationAPI } from '@/api/organization'
 
 const loading = ref(false)
+const organizationLoading = ref(false)
+const isOrganizationValid = ref(false)
+const successMessage = ref('')
+const errorMessage = ref('')
 
 const profile = ref({
   name: '',
@@ -124,6 +196,16 @@ const form = reactive({
   email: '',
   company: '',
   timezone: 'UTC'
+})
+
+// Organization form data
+const organizationForm = reactive({
+  name: '',
+  industry: '',
+  size: '',
+  description: '',
+  location: '',
+  salesModel: ''
 })
 
 const updateProfile = async () => {
@@ -150,8 +232,78 @@ const resetForm = () => {
   })
 }
 
-onMounted(() => {
+// Organization-related methods
+const onOrganizationValidationChange = (isValid: boolean) => {
+  isOrganizationValid.value = isValid
+  console.log('Organization validation changed:', isValid)
+}
+
+const updateOrganizationInfo = async () => {
+  if (!isOrganizationValid.value) {
+    errorMessage.value = '请完成所有必填信息'
+    successMessage.value = ''
+    return
+  }
+
+  organizationLoading.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
+
+  try {
+    const response = await organizationAPI.updateInfo(organizationForm)
+    
+    if (response.data.success) {
+      successMessage.value = '组织信息更新成功！'
+      console.log('Organization info updated successfully')
+    } else {
+      throw new Error(response.data.message || '更新失败')
+    }
+  } catch (error: any) {
+    console.error('Organization update failed:', error)
+    errorMessage.value = error.response?.data?.message || error.message || '更新组织信息失败，请重试'
+  } finally {
+    organizationLoading.value = false
+    
+    // Clear messages after 5 seconds
+    setTimeout(() => {
+      successMessage.value = ''
+      errorMessage.value = ''
+    }, 5000)
+  }
+}
+
+const resetOrganizationForm = () => {
+  Object.assign(organizationForm, {
+    name: '',
+    industry: '',
+    size: '',
+    description: '',
+    location: '',
+    salesModel: ''
+  })
+  errorMessage.value = ''
+  successMessage.value = ''
+}
+
+const loadOrganizationInfo = async () => {
+  try {
+    const response = await organizationAPI.getInfo()
+    
+    if (response.data.success && response.data.data) {
+      Object.assign(organizationForm, response.data.data)
+      console.log('Organization info loaded:', response.data.data)
+    }
+  } catch (error: any) {
+    console.error('Failed to load organization info:', error)
+    // Don't show error for loading - organization info might not exist yet
+  }
+}
+
+onMounted(async () => {
   // TODO: Load actual profile data
   console.log('Profile mounted')
+  
+  // Load organization info
+  await loadOrganizationInfo()
 })
 </script>
