@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { getAllLocationCodes } from '../utils/locationMapping';
 
 // 组织信息更新验证 schema
 export const organizationInfoSchema = Joi.object({
@@ -32,9 +33,27 @@ export const organizationInfoSchema = Joi.object({
     }),
 
   size: Joi.string()
-    .valid('1-10', '11-50', '51-200', '201-1000', '1000+')
+    .valid('1-10', '11-30', '31-100')
+    .required()
     .messages({
-      'any.only': '请选择有效的公司规模'
+      'any.only': '请选择有效的团队规模',
+      'any.required': '团队规模是必填项'
+    }),
+
+  location: Joi.string()
+    .valid(...getAllLocationCodes())
+    .required()
+    .messages({
+      'any.only': '请选择有效的省份或地区',
+      'any.required': '所在省份是必填项'
+    }),
+
+  salesModel: Joi.string()
+    .valid('toB', 'toC')
+    .required()
+    .messages({
+      'any.only': '请选择有效的销售模型',
+      'any.required': '销售模型是必填项'
     }),
 
   description: Joi.string()
