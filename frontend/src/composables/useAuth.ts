@@ -2,7 +2,7 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@stores/auth'
 import { useAppStore } from '@stores/app'
-import type { LoginCredentials, RegisterCredentials } from '@/user'
+import type { LoginCredentials, RegisterCredentials } from '@/types/user'
 
 export function useAuth() {
   const router = useRouter()

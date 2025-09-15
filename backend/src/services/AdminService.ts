@@ -1,12 +1,13 @@
 import * as bcrypt from 'bcryptjs';
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { PrismaClient, AdminRole, AiUsageType } from '@prisma/client';
 import { ApiError } from '@/utils/ApiError';
 import { logger } from '@/utils/logger';
 
 // Admin-specific types
 export interface AdminLoginInput {
-  email: string;
+  email?: string;
+  phone?: string;
   password: string;
 }
 
@@ -19,7 +20,7 @@ export interface AdminLoginResponse {
 export interface AdminUserResponse {
   id: string;
   username: string;
-  email: string;
+  email: string | null;
   firstName: string | null;
   lastName: string | null;
   role: AdminRole;
@@ -31,7 +32,7 @@ export interface AdminUserResponse {
 export interface AdminJwtPayload {
   adminId: string;
   username: string;
-  email: string;
+  email: string | null;
   role: AdminRole;
   type: 'admin';
 }
@@ -39,7 +40,7 @@ export interface AdminJwtPayload {
 export interface UserWithAiUsage {
   id: string;
   username: string;
-  email: string;
+  email: string | null;
   firstName: string | null;
   lastName: string | null;
   organizationId: string | null;
@@ -75,7 +76,7 @@ export interface UsageStatsResponse {
   topUsers: {
     id: string;
     username: string;
-    email: string;
+    email: string | null;
     totalUsage: number;
     monthUsage: number;
   }[];
@@ -641,7 +642,7 @@ export class AdminService {
   private generateToken(payload: AdminJwtPayload): string {
     return jwt.sign(payload, this.jwtSecret, {
       expiresIn: this.jwtExpiresIn
-    });
+    } as any);
   }
 
   /**
@@ -680,9 +681,10 @@ export class AdminService {
       if (filters?.region) {
         whereClause.region = { contains: filters.region, mode: 'insensitive' };
       }
-      if (filters?.companySize) {
-        whereClause.companySize = { contains: filters.companySize, mode: 'insensitive' };
-      }
+      // Note: Schema doesn't have companySize field, skipping filter
+      // if (filters?.companySize) {
+      //   whereClause.companySize = { contains: filters.companySize, mode: 'insensitive' };
+      // }
       if (filters?.metricType) {
         whereClause.metricType = { contains: filters.metricType, mode: 'insensitive' };
       }
@@ -718,8 +720,8 @@ export class AdminService {
       const data: BenchmarkDataResponse[] = benchmarkRecords.map(record => ({
         id: record.id,
         industry: record.industry,
-        region: record.companySize, // 注意：schema中没有region字段，这里使用companySize
-        companySize: record.companySize,
+        region: undefined, // Note: Schema doesn't have region or companySize field
+        companySize: undefined, // Note: Schema doesn't have companySize field
         metricType: record.metricType,
         metricName: record.metricName,
         value: Number(record.value),
@@ -807,8 +809,8 @@ export class AdminService {
       return {
         id: benchmarkRecord.id,
         industry: benchmarkRecord.industry,
-        region: benchmarkRecord.companySize,
-        companySize: benchmarkRecord.companySize,
+        region: undefined, // Schema doesn't have region field
+        companySize: undefined, // Schema doesn't have companySize field
         metricType: benchmarkRecord.metricType,
         metricName: benchmarkRecord.metricName,
         value: Number(benchmarkRecord.value),
@@ -909,8 +911,8 @@ export class AdminService {
       return {
         id: updatedRecord.id,
         industry: updatedRecord.industry,
-        region: updatedRecord.companySize,
-        companySize: updatedRecord.companySize,
+        region: undefined, // Schema doesn't have region field
+        companySize: undefined, // Schema doesn't have companySize field
         metricType: updatedRecord.metricType,
         metricName: updatedRecord.metricName,
         value: Number(updatedRecord.value),

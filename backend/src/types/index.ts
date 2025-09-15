@@ -40,7 +40,8 @@ export interface ApiError {
 export interface JwtPayload {
   userId: string;
   username: string;
-  email: string;
+  email?: string;
+  phone?: string;
   organizationId?: string;
   role?: string;
   iat?: number;
@@ -59,7 +60,7 @@ export interface PasswordResetPayload {
 export interface RequestUser {
   id: string;
   username: string;
-  email: string;
+  email?: string;
   organizationId?: string;
   role?: string;
 }
@@ -78,6 +79,8 @@ export * from './user';
 export * from './node';
 export * from './edge';
 export * from './organization';
+export * from './funnelMetrics';
+export * from './analytics';
 
 // Export funnel types with specific naming to avoid conflicts
 export type {
@@ -106,26 +109,33 @@ export type {
   PeerComparisonResult,
   ImprovementPotential,
   AnalysisRequest as FunnelAnalysisRequest,
-  AnalysisResponse as FunnelAnalysisResponse
+  AnalysisResponse as FunnelAnalysisResponse,
+  // Funnel Instance types
+  FunnelInstanceStatus,
+  CreateFunnelInstanceInput,
+  UpdateFunnelInstanceInput,
+  FunnelInstanceResponse,
+  FunnelInstanceDetails,
+  FunnelInstanceMetricsResponse,
+  FunnelInstanceListItem,
+  InstanceUsageStats,
+  InstanceComparison,
+  BulkInstanceOperationInput,
+  TemplateUsageTracking
 } from './funnel';
 
 // Export AI types with specific naming to avoid conflicts
 export type {
-  AiProvider,
-  AiModel,
-  ChatMessage,
-  ChatSession,
-  ChatSessionWithMessages,
-  CreateChatSessionRequest,
-  SendMessageRequest,
-  AiAnalysisRequest,
-  AiAnalysisResponse,
+  ChatRequest,
+  ChatResponse,
+  CreateAiSessionInput,
+  CreateAiMessageInput,
+  AiSessionResponse,
+  AiSessionDetails,
+  AiAction,
+  AiInsight,
   AiRecommendation,
-  AnalysisResult as AiAnalysisResult,
-  OptimizationSuggestion,
-  PerformanceInsights,
-  CreateAnalysisRequest,
-  GetAnalysisRequest,
-  AnalysisRequest as AiAnalysisRequestLegacy,
-  AnalysisResponse as AiAnalysisResponseLegacy
+  SessionContextConfig,
+  AnalysisRequest as AiAnalysisRequest,
+  AnalysisResponse as AiAnalysisResponse
 } from './ai';

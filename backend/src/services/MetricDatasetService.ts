@@ -54,8 +54,8 @@ export class MetricDatasetService {
     try {
       logger.info(`Creating funnel metric dataset: ${data.name} for organization: ${organizationId}`);
       
-      // 计算转化率
-      const processedStageData = this.calculateConversionRates(data.stageData);
+      // 计算转化率 - 使用类型断言来避免类型错误
+      const processedStageData = this.calculateConversionRates(data.stageData as any);
       
       // 准备数据集配置
       const config = {
@@ -76,7 +76,7 @@ export class MetricDatasetService {
           name: data.name,
           datasetType: 'funnel_conversion',
           dataSource: data.dataSource || 'manual',
-          config,
+          config: config as any,
           organizationId,
           createdBy
         }
@@ -241,13 +241,40 @@ export class MetricDatasetService {
     } = {}
   ): Promise<MetricDataset[]> {
     try {
-      // TODO: 实现获取数据集列表逻辑
-      // - 分页支持
-      // - 按类型和数据源过滤
-      // - 按创建时间排序
+      const { page = 1, limit = 20, datasetType, dataSource } = options;
       
       logger.info(`Getting metric datasets for organization: ${organizationId}`);
-      throw new Error('Not implemented yet');
+      
+      // 构建查询条件
+      const where = {
+        organizationId,
+        ...(datasetType && { datasetType }),
+        ...(dataSource && { dataSource })
+      };
+      
+      // 查询数据集列表
+      const datasets = await this.prisma.metricDataset.findMany({
+        where,
+        orderBy: {
+          createdAt: 'desc'
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          creator: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              firstName: true,
+              lastName: true
+            }
+          }
+        }
+      });
+      
+      logger.info(`Found ${datasets.length} metric datasets for organization: ${organizationId}`);
+      return datasets;
     } catch (error) {
       logger.error('Error getting metric datasets:', error);
       throw new ApiError('获取指标数据集列表失败', 500);

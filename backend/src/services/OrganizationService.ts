@@ -64,7 +64,11 @@ export class OrganizationService {
       });
 
       logger.info(`Organization created: ${organization.name} by user ${createdBy}`);
-      return organization;
+      return {
+        ...organization,
+        description: organization.description || undefined,
+        planType: organization.planType as any
+      };
     } catch (error) {
       logger.error('Error creating organization:', error);
       if (error instanceof ApiError) {
@@ -120,7 +124,25 @@ export class OrganizationService {
         }
       });
 
-      return organization;
+      if (!organization) return null;
+      
+      return {
+        ...organization,
+        description: organization.description || undefined,
+        planType: organization.planType as any,
+        usageLimit: organization.usageLimit || undefined,
+        funnels: organization.funnels?.map(f => ({
+          ...f,
+          description: f.description || undefined
+        })),
+        funnelTemplates: organization.funnelTemplates?.map(ft => ({
+          ...ft,
+          description: ft.description || undefined
+        })),
+        users: organization.users?.map(u => ({
+          ...u
+        }))
+      } as any;
     } catch (error) {
       logger.error('Error getting organization:', error);
       throw new ApiError('获取组织失败', 500);
@@ -164,7 +186,11 @@ export class OrganizationService {
       });
 
       logger.info(`Organization updated: ${updatedOrganization.name} (${id})`);
-      return updatedOrganization;
+      return {
+        ...updatedOrganization,
+        description: updatedOrganization.description || undefined,
+        planType: updatedOrganization.planType as any
+      };
     } catch (error) {
       logger.error('Error updating organization:', error);
       if (error instanceof ApiError) {
@@ -285,6 +311,110 @@ export class OrganizationService {
   async createDefaultOrganization(name: string, createdBy: string): Promise<Organization> {
     const slug = await this.generateUniqueSlug(name);
     return this.createOrganization({ name, slug }, createdBy);
+  }
+
+  /**
+   * 获取组织详情（包含结构化数据）
+   */
+  async getOrganizationWithStructuredData(id: string) {
+    try {
+      const organization = await this.prisma.organization.findUnique({
+        where: { id },
+        include: {
+          industry: true,
+        }
+      });
+
+      if (!organization) return null;
+
+      return {
+        id: organization.id,
+        name: organization.name,
+        slug: organization.slug,
+        description: organization.description || undefined,
+        industry: organization.industry ? {
+          id: organization.industry.id,
+          code: organization.industry.code,
+          name: organization.industry.name,
+          nameEn: organization.industry.nameEn || undefined
+        } : null,
+        companySize: organization.companySize || undefined,
+        location: organization.location || undefined,
+        salesModel: organization.salesModel || undefined,
+        planType: organization.planType,
+        isActive: organization.isActive,
+        createdAt: organization.createdAt,
+        updatedAt: organization.updatedAt
+      };
+    } catch (error) {
+      logger.error('Error getting organization with structured data:', error);
+      throw new ApiError('获取组织信息失败', 500);
+    }
+  }
+
+  /**
+   * 更新组织（使用结构化数据）
+   */
+  async updateOrganizationWithStructuredData(id: string, data: {
+    name?: string;
+    description?: string;
+    industryId?: string | null;
+    companySize?: string | null;
+    location?: string | null;
+    salesModel?: string | null;
+  }) {
+    try {
+      const existingOrg = await this.prisma.organization.findUnique({
+        where: { id }
+      });
+
+      if (!existingOrg) {
+        throw new ApiError('组织不存在', 404);
+      }
+
+      const updatedOrganization = await this.prisma.organization.update({
+        where: { id },
+        data: {
+          ...(data.name && { name: data.name }),
+          ...(data.description !== undefined && { description: data.description }),
+          ...(data.industryId !== undefined && { industryId: data.industryId }),
+          ...(data.companySize !== undefined && { companySize: data.companySize as any }),
+          ...(data.location !== undefined && { location: data.location }),
+          ...(data.salesModel !== undefined && { salesModel: data.salesModel as any }),
+        },
+        include: {
+          industry: true
+        }
+      });
+
+      logger.info(`Organization updated with structured data: ${updatedOrganization.name} (${id})`);
+      
+      return {
+        id: updatedOrganization.id,
+        name: updatedOrganization.name,
+        slug: updatedOrganization.slug,
+        description: updatedOrganization.description || undefined,
+        industry: updatedOrganization.industry ? {
+          id: updatedOrganization.industry.id,
+          code: updatedOrganization.industry.code,
+          name: updatedOrganization.industry.name,
+          nameEn: updatedOrganization.industry.nameEn || undefined
+        } : null,
+        companySize: updatedOrganization.companySize || undefined,
+        location: updatedOrganization.location || undefined,
+        salesModel: updatedOrganization.salesModel || undefined,
+        planType: updatedOrganization.planType,
+        isActive: updatedOrganization.isActive,
+        createdAt: updatedOrganization.createdAt,
+        updatedAt: updatedOrganization.updatedAt
+      };
+    } catch (error) {
+      logger.error('Error updating organization with structured data:', error);
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new ApiError('更新组织信息失败', 500);
+    }
   }
 
   /**

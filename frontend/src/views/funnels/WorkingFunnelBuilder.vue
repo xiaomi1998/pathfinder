@@ -1,18 +1,18 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-gradient-pathfinder">
     <!-- 顶部工具栏 -->
-    <div class="bg-white border-b border-gray-200 px-6 py-4">
+    <div class="card-pathfinder px-6 py-3 m-2 mb-0">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
-          <router-link to="/funnels" class="text-gray-500 hover:text-gray-700">
+          <router-link to="/funnels" class="text-gray-500 hover:text-primary-600 transition-colors">
             ← 返回漏斗列表
           </router-link>
-          <h1 class="text-2xl font-bold text-gray-900">漏斗构建器 v2</h1>
+          <h1 class="text-2xl font-bold text-gray-900 hero-title">漏斗构建器 v2</h1>
         </div>
         
         <div class="flex items-center space-x-3">
           <button @click="saveFunnel" 
-                  class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+                  class="btn-pathfinder btn-primary-pathfinder">
             保存漏斗
           </button>
         </div>
@@ -22,13 +22,13 @@
     <!-- 主要内容区域 -->
     <div class="flex h-screen">
       <!-- 左侧节点面板 -->
-      <div class="w-64 bg-white border-r border-gray-200 p-4">
+      <div class="w-64 card-pathfinder m-2 mr-0 p-3">
         <h3 class="text-lg font-medium text-gray-900 mb-4">节点库</h3>
         
         <div class="space-y-2">
           <button v-for="nodeType in nodeTypes" :key="nodeType.type"
                   @click="addNode(nodeType)"
-                  class="w-full p-3 border border-gray-200 rounded-lg hover:bg-gray-50 text-left">
+                  class="w-full p-3 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-all hover:shadow-card-hover hover:transform hover:-translate-y-1">
             <div class="font-medium text-gray-900">{{ nodeType.label }}</div>
             <div class="text-sm text-gray-600">{{ nodeType.description }}</div>
           </button>
@@ -38,25 +38,25 @@
       <!-- 中间画布区域 -->
       <div class="flex-1 p-6">
         <!-- 工具栏 -->
-        <div class="bg-white rounded-lg shadow mb-4 px-4 py-2 flex items-center justify-between">
+        <div class="card-pathfinder mb-4 px-4 py-2 flex items-center justify-between">
           <div class="flex items-center space-x-3">
             <button @click="toggleConnectionMode" 
                     :class="[
-                      'px-3 py-2 text-sm font-medium rounded',
-                      isConnecting ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      'btn-pathfinder px-3 py-2 text-sm font-medium',
+                      isConnecting ? 'btn-primary-pathfinder' : 'btn-secondary-pathfinder'
                     ]">
               🔗 {{ isConnecting ? '退出连接模式' : '连接模式' }}
             </button>
             
             <div class="border-l border-gray-300 h-6"></div>
             
-            <button @click="zoomIn" class="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded">
+            <button @click="zoomIn" class="btn-pathfinder btn-secondary-pathfinder px-3 py-2 text-sm">
               🔍+ 放大
             </button>
-            <button @click="zoomOut" class="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded">
+            <button @click="zoomOut" class="btn-pathfinder btn-secondary-pathfinder px-3 py-2 text-sm">
               🔍- 缩小  
             </button>
-            <button @click="resetZoom" class="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded">
+            <button @click="resetZoom" class="btn-pathfinder btn-secondary-pathfinder px-3 py-2 text-sm">
               ↻ 重置
             </button>
           </div>
@@ -75,7 +75,7 @@
         </div>
         
         <!-- 画布 -->
-        <div class="bg-white rounded-lg shadow h-96 relative overflow-hidden"
+        <div class="card-pathfinder h-96 relative overflow-hidden"
              @wheel="handleZoom"
              @mousedown="startPan"
              ref="canvasContainer">
@@ -93,8 +93,8 @@
                  :style="nodeStyle(node)"
                  @mousedown="startNodeDrag($event, node)"
                  @click.stop="selectNode(node)"
-                 class="absolute bg-white border-2 rounded-lg p-3 cursor-move shadow-md hover:shadow-lg transition-shadow"
-                 :class="{ 'border-blue-500': selectedNodeId === node.id, 'border-gray-300': selectedNodeId !== node.id }">
+                 class="absolute bg-white border-2 rounded-lg p-3 cursor-move shadow-card hover:shadow-card-hover transition-all hover:-translate-y-1"
+                 :class="{ 'border-primary-500': selectedNodeId === node.id, 'border-gray-300': selectedNodeId !== node.id }">
               
               <div class="font-medium text-gray-900">{{ node.label }}</div>
               <div class="text-sm text-gray-600">{{ node.type }}</div>
@@ -109,8 +109,9 @@
                        connectingFrom?.nodeId === node.id && connectingFrom?.anchor === anchor 
                          ? 'bg-green-500 animate-pulse' 
                          : 'bg-blue-500 hover:bg-blue-600'
-                     ]\">
-                </div>\n              </div>"}
+                     ]">
+                </div>
+              </div>
               
               <button @click.stop="removeNode(node.id)"
                       class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full hover:bg-red-600 flex items-center justify-center">
@@ -136,15 +137,15 @@
       </div>
 
       <!-- 右侧属性面板 -->
-      <div class="w-80 bg-white border-l border-gray-200 p-4">
+      <div class="w-80 card-pathfinder m-2 ml-0 p-3">
         <h3 class="text-lg font-medium text-gray-900 mb-4">属性面板</h3>
         
-        <div v-if="selectedNode" class="mb-6 p-3 bg-blue-50 rounded-lg">
+        <div v-if="selectedNode" class="mb-6 p-3 bg-blue-50 rounded-lg border border-blue-200">
           <h4 class="font-medium text-blue-900 mb-2">节点属性</h4>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">名称</label>
             <input v-model="selectedNode.label" type="text"
-                   class="w-full px-2 py-1 text-sm border rounded">
+                   class="form-input-pathfinder w-full px-2 py-1 text-sm">
           </div>
         </div>
         
@@ -165,7 +166,7 @@
         
         <div class="mt-6">
           <button @click="clearAll" 
-                  class="w-full px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded text-sm">
+                  class="btn-pathfinder btn-danger-pathfinder w-full px-3 py-2 text-sm">
             🗑️ 清空画布
           </button>
         </div>
@@ -176,6 +177,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 
 // 数据
 const nodeTypes = ref([
@@ -409,6 +411,8 @@ const clearAll = () => {
   }
 }
 
+const router = useRouter()
+
 const saveFunnel = () => {
   const data = {
     nodes: nodes.value,
@@ -416,6 +420,18 @@ const saveFunnel = () => {
   }
   console.log('保存漏斗:', data)
   alert('漏斗保存成功！')
+  
+  // 检查是否从注册流程进入
+  const fromOnboarding = sessionStorage.getItem('onboardingReturn')
+  if (fromOnboarding) {
+    // 从注册流程进入，设置标记并返回注册流程
+    sessionStorage.setItem('onboardingReturnComplete', 'true')
+    sessionStorage.removeItem('onboardingReturn')
+    router.push('/onboarding')
+  } else {
+    // 直接跳转到仪表盘
+    router.push('/dashboard')
+  }
 }
 
 console.log('WorkingFunnelBuilder 组件已加载')

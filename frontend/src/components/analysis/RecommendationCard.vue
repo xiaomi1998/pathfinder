@@ -102,7 +102,7 @@
           </div>
           <ul class="space-y-2">
             <li 
-              v-for="(item, index) in getVisibleActionItems()" 
+              v-for="(item, index) in getVisibleActionItems" 
               :key="index"
               class="flex items-start space-x-2"
             >

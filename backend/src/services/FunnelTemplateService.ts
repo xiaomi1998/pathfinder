@@ -506,4 +506,77 @@ export class FunnelTemplateService {
       } : undefined
     };
   }
+
+  /**
+   * 获取所有行业默认模板列表
+   */
+  async getIndustryTemplates(): Promise<FunnelTemplate[]> {
+    try {
+      logger.info('Getting industry templates');
+      
+      const templates = await this.prisma.funnelTemplate.findMany({
+        where: { 
+          isDefault: true,
+          organization: {
+            name: 'System Templates'
+          }
+        },
+        include: {
+          creator: {
+            select: {
+              id: true,
+              username: true,
+              email: true
+            }
+          }
+        },
+        orderBy: { name: 'asc' }
+      });
+
+      return templates.map(template => this.mapToFunnelTemplate(template));
+    } catch (error) {
+      logger.error('Error getting industry templates:', error);
+      throw new ApiError('获取行业模板失败', 500);
+    }
+  }
+
+  /**
+   * 根据行业获取特定默认模板
+   */
+  async getIndustryTemplate(industry: string): Promise<FunnelTemplate | null> {
+    try {
+      logger.info(`Getting industry template for: ${industry}`);
+      
+      const template = await this.prisma.funnelTemplate.findFirst({
+        where: { 
+          isDefault: true,
+          organization: {
+            name: 'System Templates'
+          },
+          templateData: {
+            path: ['industry'],
+            equals: industry
+          }
+        },
+        include: {
+          creator: {
+            select: {
+              id: true,
+              username: true,
+              email: true
+            }
+          }
+        }
+      });
+
+      if (!template) {
+        return null;
+      }
+
+      return this.mapToFunnelTemplate(template);
+    } catch (error) {
+      logger.error('Error getting industry template:', error);
+      throw new ApiError('获取行业模板失败', 500);
+    }
+  }
 }

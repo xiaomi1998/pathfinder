@@ -1,0 +1,522 @@
+/* ===== EXTRACTED CSS STYLES FROM FUNNEL-TEMPLATES.HTML ===== */
+/* Converted to scoped Vue.js CSS for FunnelList.vue template selection interface */
+
+/* 1. BASE STYLES */
+.funnel-templates-body {
+  font-family: 'PingFang SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f8fafe;
+  margin: 0;
+  padding: 16px;
+  font-size: 14px;
+  color: #1a1a1a;
+}
+
+/* 2. HEADER CARD STYLES */
+.header-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid #dcdcdc;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* 3. CATEGORY NAVIGATION STYLES */
+.category-nav {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid #dcdcdc;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.nav-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.nav-tab {
+  padding: 12px 20px;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  color: #6b7280;
+  position: relative;
+}
+
+.nav-tab:hover {
+  color: #0052d9;
+}
+
+.nav-tab.active {
+  color: #0052d9;
+  border-bottom-color: #0052d9;
+}
+
+/* 4. FILTER CHIP STYLES */
+.filter-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-chip {
+  padding: 6px 12px;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 16px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.filter-chip:hover,
+.filter-chip.active {
+  background: #0052d9;
+  color: white;
+  border-color: #0052d9;
+}
+
+/* 5. TEMPLATES GRID LAYOUT */
+.templates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+/* 6. TEMPLATE CARD STYLES */
+.template-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #dcdcdc;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.template-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.template-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.template-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: white;
+  margin-bottom: 12px;
+}
+
+.template-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+}
+
+.template-desc {
+  color: #6b7280;
+  font-size: 13px;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+/* 7. TEMPLATE TAG STYLES */
+.template-tags {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.template-tag {
+  padding: 3px 8px;
+  background: #f3f4f6;
+  border-radius: 10px;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.tag-industry {
+  background: #e6f7ff;
+  color: #0052d9;
+}
+
+.tag-function {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.tag-difficulty {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+/* 8. TEMPLATE STAGES PREVIEW */
+.template-stages {
+  margin-bottom: 16px;
+}
+
+.stages-preview {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+  overflow-x: auto;
+  padding: 2px;
+}
+
+.stage-mini {
+  min-width: 60px;
+  height: 24px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #64748b;
+  text-align: center;
+}
+
+.stage-arrow {
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+/* 9. TEMPLATE STATS */
+.template-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  font-weight: 600;
+  color: #0052d9;
+  display: block;
+}
+
+.stat-label {
+  color: #6b7280;
+}
+
+/* 10. TEMPLATE ACTIONS */
+.template-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* 11. BUTTON STYLES */
+.btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  flex: 1;
+  text-align: center;
+}
+
+.btn-primary {
+  background: #0052d9;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #003db7;
+}
+
+.btn-secondary {
+  background: white;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.btn-secondary:hover {
+  background: #f9fafb;
+}
+
+/* 12. RECOMMENDED BADGE */
+.recommended-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #f59e0b;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* 13. USAGE STATS SECTION */
+.usage-stats {
+  display: flex;
+  justify-content: space-between;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.usage-item {
+  text-align: center;
+}
+
+.usage-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0052d9;
+}
+
+.usage-label {
+  font-size: 11px;
+  color: #0369a1;
+}
+
+/* 14. MODAL/PREVIEW STYLES */
+.preview-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.preview-content {
+  background: white;
+  border-radius: 12px;
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.preview-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 10;
+}
+
+.preview-body {
+  padding: 24px;
+}
+
+.close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #f3f4f6;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+/* 15. FUNNEL VISUALIZATION */
+.funnel-visualization {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.funnel-stage {
+  background: linear-gradient(135deg, #0052d9 0%, #366ef4 100%);
+  color: white;
+  padding: 12px 16px;
+  margin: 8px auto;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 500;
+  position: relative;
+}
+
+.stage-1 { width: 100%; }
+.stage-2 { width: 85%; }
+.stage-3 { width: 70%; }
+.stage-4 { width: 55%; }
+.stage-5 { width: 40%; }
+
+/* 16. EMPTY STATE */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6b7280;
+}
+
+.empty-icon {
+  font-size: 48px;
+  color: #d1d5db;
+  margin-bottom: 16px;
+}
+
+/* 17. RESPONSIVE BEHAVIOR */
+@media (max-width: 768px) {
+  .templates-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .filter-chips {
+    gap: 6px;
+  }
+  
+  .filter-chip {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+  
+  .template-card {
+    padding: 16px;
+  }
+  
+  .template-stats {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .stat-item {
+    text-align: left;
+  }
+}
+
+/* 18. HOVER EFFECTS AND INTERACTIVE STATES */
+.template-card:hover .template-icon {
+  transform: scale(1.1);
+}
+
+.template-card:hover .template-title {
+  color: #0052d9;
+}
+
+.nav-tab::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: #0052d9;
+  transition: all 0.2s ease;
+  transform: translateX(-50%);
+}
+
+.nav-tab.active::after {
+  width: 100%;
+}
+
+/* 19. ANIMATION CLASSES */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+.template-card {
+  animation: slideIn 0.3s ease-out;
+}
+
+.template-card:nth-child(2) { animation-delay: 0.1s; }
+.template-card:nth-child(3) { animation-delay: 0.2s; }
+.template-card:nth-child(4) { animation-delay: 0.3s; }
+
+/* 20. FOCUS STATES FOR ACCESSIBILITY */
+.nav-tab:focus,
+.filter-chip:focus,
+.template-card:focus,
+.btn:focus,
+.close-btn:focus {
+  outline: 2px solid #0052d9;
+  outline-offset: 2px;
+}
+
+/* 21. ADDITIONAL UTILITY CLASSES */
+.mr-1 { margin-right: 0.25rem; }
+.mr-2 { margin-right: 0.5rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-3 { margin-bottom: 0.75rem; }
+.mb-4 { margin-bottom: 1rem; }
+
+.text-sm { font-size: 0.875rem; }
+.text-xs { font-size: 0.75rem; }
+
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+
+.opacity-90 { opacity: 0.9; }
+
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.space-x-1 > * + * { margin-left: 0.25rem; }
+.space-x-3 > * + * { margin-left: 0.75rem; }
+.space-y-2 > * + * { margin-top: 0.5rem; }
+
+/* Vue Scoped CSS - Add :deep() for nested components */
+:deep(.fas) {
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+}
+
+:deep(.far) {
+  font-family: "Font Awesome 6 Free";
+  font-weight: 400;
+}

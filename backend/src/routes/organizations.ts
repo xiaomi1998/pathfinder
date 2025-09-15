@@ -1,12 +1,14 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { OrganizationService } from '@/services/OrganizationService';
+import { IndustryService } from '@/services/IndustryService';
 import { authMiddleware } from '@/middleware/auth';
 import { validateBody } from '@/middleware/joiValidation';
 import { organizationInfoSchema } from '@/schemas/organization';
-import { getLocationName } from '@/utils/locationMapping';
+import { getLocationName, getLocationCode } from '@/utils/locationMapping';
 
 const router = Router();
 const organizationService = new OrganizationService();
+const industryService = new IndustryService();
 
 // 更新组织信息路由
 router.post(
@@ -33,24 +35,56 @@ router.post(
 
       const organizationData = req.body;
       
-      // 特殊处理：将所有新增字段存储到description中
-      // 这样可以不修改现有的数据模型
-      const metadataFields = [
-        `行业: ${organizationData.industry || '未设置'}`,
-        `规模: ${organizationData.size || '未设置'}`,
-        `城市: ${organizationData.location ? getLocationName(organizationData.location) : '未设置'}`,
-        `销售模型: ${organizationData.salesModel || '未设置'}`
-      ];
+      // 获取行业ID（如果提供了行业代码）
+      let industryId: string | null = null;
+      if (organizationData.industry) {
+        const industry = await industryService.getIndustryByCode(organizationData.industry);
+        if (industry) {
+          industryId = industry.id;
+        }
+      }
       
-      const enhancedDescription = organizationData.description 
-        ? `${organizationData.description}\n\n--- 组织信息 ---\n${metadataFields.join('\n')}`
-        : `--- 组织信息 ---\n${metadataFields.join('\n')}`;
+      // 映射公司规模
+      let companySize: string | null = null;
+      if (organizationData.size) {
+        switch (organizationData.size) {
+          case '1-10':
+            companySize = 'SIZE_1_10';
+            break;
+          case '11-30':
+            companySize = 'SIZE_11_30';
+            break;
+          case '31-100':
+            companySize = 'SIZE_31_100';
+            break;
+        }
+      }
+      
+      // 映射销售模型
+      let salesModel: string | null = null;
+      if (organizationData.salesModel) {
+        switch (organizationData.salesModel) {
+          case 'toB':
+            salesModel = 'TO_B';
+            break;
+          case 'toC':
+            salesModel = 'TO_C';
+            break;
+        }
+      }
 
-      const updatedOrganization = await organizationService.updateOrganization(
+      // 处理位置信息
+      const location = organizationData.location ? getLocationName(organizationData.location) : null;
+
+      const updatedOrganization = await organizationService.updateOrganizationWithStructuredData(
         req.user.organizationId,
         {
           name: organizationData.name,
-          description: enhancedDescription
+          description: organizationData.description,
+          industryId,
+          companySize,
+          location,
+          salesModel
         }
       );
 
@@ -79,7 +113,7 @@ router.get(
         });
       }
 
-      const organization = await organizationService.getOrganizationById(req.user.organizationId);
+      const organization = await organizationService.getOrganizationWithStructuredData(req.user.organizationId);
       
       if (!organization) {
         return res.status(404).json({
@@ -89,43 +123,25 @@ router.get(
         });
       }
 
-      // 解析description中的元数据信息
-      let parsedInfo = {
+      // 转换为前端期望的格式
+      const parsedInfo = {
         name: organization.name,
-        industry: '',
-        size: '',
-        location: '',
-        salesModel: '',
-        description: ''
+        industry: organization.industry?.code || '',
+        size: organization.companySize ? 
+          organization.companySize.replace('SIZE_', '').replace('_', '-') : '',
+        location: organization.location ? getLocationCode(organization.location) : '',
+        salesModel: organization.salesModel ? 
+          organization.salesModel.replace('TO_', 'to') : '',
+        description: organization.description || ''
       };
 
-      if (organization.description) {
-        // 尝试从description中解析结构化信息
-        const lines = organization.description.split('\n');
-        const metadataStart = lines.findIndex(line => line.includes('--- 组织信息 ---'));
-        
-        if (metadataStart > -1) {
-          // 获取元数据之前的内容作为description
-          parsedInfo.description = lines.slice(0, metadataStart).join('\n').trim();
-          
-          // 解析元数据
-          const metadataLines = lines.slice(metadataStart + 1);
-          for (const line of metadataLines) {
-            if (line.includes('行业:')) {
-              parsedInfo.industry = line.split('行业:')[1]?.trim().replace('未设置', '') || '';
-            } else if (line.includes('规模:')) {
-              parsedInfo.size = line.split('规模:')[1]?.trim().replace('未设置', '') || '';
-            } else if (line.includes('城市:')) {
-              parsedInfo.location = line.split('城市:')[1]?.trim().replace('未设置', '') || '';
-            } else if (line.includes('销售模型:')) {
-              parsedInfo.salesModel = line.split('销售模型:')[1]?.trim().replace('未设置', '') || '';
-            }
-          }
-        } else {
-          // 没有结构化数据，全部作为description
-          parsedInfo.description = organization.description;
-        }
-      }
+      // 设置缓存控制头，确保始终返回最新数据
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Last-Modified': new Date().toUTCString()
+      });
 
       res.json({
         success: true,
@@ -166,6 +182,24 @@ router.get(
         success: true,
         data: organization,
         message: '获取组织信息成功'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// 获取行业选项
+router.get(
+  '/industries',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const industries = await industryService.getActiveIndustries();
+      
+      res.json({
+        success: true,
+        data: industries,
+        message: '获取行业列表成功'
       });
     } catch (error) {
       next(error);

@@ -1,776 +1,2485 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <!-- Header -->
-    <div class="bg-white shadow">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-16">
-          <!-- Navigation -->
-          <nav class="flex items-center space-x-4">
-            <router-link to="/dashboard" class="text-gray-500 hover:text-gray-700">
-              <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L9 5.414V17a1 1 0 102 0V5.414l5.293 5.293a1 1 0 001.414-1.414l-7-7z"/>
-              </svg>
-            </router-link>
-            <span class="text-gray-500">/</span>
-            <router-link to="/metrics" class="text-gray-500 hover:text-gray-700">
-              数据集
-            </router-link>
-            <span class="text-gray-500">/</span>
-            <span class="text-sm font-medium text-gray-900">智能分析</span>
-          </nav>
-
-          <!-- Actions -->
-          <div class="flex items-center space-x-4">
-            <button
-              @click="refreshAnalysis"
-              :disabled="loading"
-              class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-            >
-              <svg class="mr-2 h-4 w-4" :class="{ 'animate-spin': loading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-              </svg>
-              {{ loading ? '分析中...' : '刷新分析' }}
-            </button>
-            <button
-              @click="exportReport"
-              :disabled="!analysisData || loading"
-              class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-            >
-              <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-              </svg>
-              导出完整报告
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Loading State -->
-    <div v-if="loading && !analysisData" class="flex items-center justify-center py-12">
-      <div class="flex items-center space-x-3">
-        <svg class="animate-spin h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        <div class="text-center">
-          <span class="text-lg text-gray-600">正在执行智能分析...</span>
-          <div class="text-sm text-gray-500 mt-1">{{ loadingStatus }}</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Error State -->
-    <div v-else-if="error" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div class="bg-red-50 border border-red-200 rounded-md p-4">
-        <div class="flex">
-          <div class="flex-shrink-0">
-            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-            </svg>
-          </div>
-          <div class="ml-3">
-            <h3 class="text-sm font-medium text-red-800">分析失败</h3>
-            <div class="mt-2 text-sm text-red-700">
-              <p>{{ error }}</p>
-            </div>
-            <div class="mt-4 flex space-x-3">
-              <button
-                @click="performAnalysis"
-                class="bg-red-100 px-3 py-2 rounded-md text-sm font-medium text-red-800 hover:bg-red-200"
-              >
-                重试分析
-              </button>
-              <button
-                @click="loadSampleData"
-                class="bg-red-100 px-3 py-2 rounded-md text-sm font-medium text-red-800 hover:bg-red-200"
-              >
-                使用示例数据
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+  <div class="min-h-screen" :style="{ 
+    fontFamily: 'PingFang SC, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif',
+    background: '#f8fafe',
+    fontSize: '14px',
+    color: '#1a1a1a' 
+  }">
+    <!-- Sidebar toggle is handled by the main Sidebar component -->
 
     <!-- Main Content -->
-    <div v-else-if="analysisData" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <!-- Page Title -->
-      <div class="mb-6">
-        <h1 class="text-3xl font-bold text-gray-900">智能分析报告</h1>
-        <p class="mt-2 text-lg text-gray-600">
-          基于漏斗数据的全面分析、诊断与优化建议
-        </p>
-        <div class="mt-2 flex items-center space-x-4 text-sm text-gray-500">
-          <span>分析时间: {{ formatDateTime(analysisData.timestamp) }}</span>
-          <span>•</span>
-          <span>行业: {{ industry || '通用' }}</span>
-          <span>•</span>
-          <span>公司规模: {{ companySize || '未指定' }}</span>
+    <div class="main-content" :class="{ 'sidebar-collapsed': sidebarCollapsed }" 
+         :style="{ 
+           marginLeft: sidebarCollapsed ? '10px' : '20px', 
+           padding: '16px', 
+           minHeight: '100vh', 
+           transition: 'all 0.3s ease' 
+         }">
+      <!-- Header Card -->
+      <div class="header-card" :style="{
+        background: 'white',
+        borderRadius: '12px',
+        padding: '16px 20px',
+        marginBottom: '16px',
+        border: '1px solid #dcdcdc',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)'
+      }">
+        <div class="header-title" :style="{
+          fontSize: '24px',
+          fontWeight: '700',
+          color: '#1a1a1a',
+          marginBottom: '8px'
+        }">
+          <i class="fas fa-chart-line" style="margin-right: 12px;"></i>
+          报告中心
+        </div>
+        <div class="header-desc" :style="{
+          color: '#6b7280',
+          fontSize: '14px'
+        }">
+          管理和查看您的AI分析报告，跟踪业务优化进展
         </div>
       </div>
 
-      <!-- Tab Navigation -->
-      <div class="border-b border-gray-200 mb-6">
-        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-          <button
-            v-for="tab in tabs"
-            :key="tab.id"
-            @click="activeTab = tab.id"
-            :class="[
-              activeTab === tab.id
-                ? 'border-indigo-500 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-              'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2'
-            ]"
-          >
-            <component :is="tab.icon" class="h-4 w-4" />
-            <span>{{ tab.name }}</span>
-            <span v-if="tab.badge" 
-                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                  :class="tab.badgeClass">
-              {{ tab.badge }}
-            </span>
-          </button>
-        </nav>
+      <!-- Stats Grid -->
+      <div class="stats-grid" :style="{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: '16px',
+        marginBottom: '20px'
+      }">
+        <div class="stat-card" :style="{
+          background: 'white',
+          borderRadius: '8px',
+          padding: '16px',
+          border: '1px solid #e5e7eb',
+          textAlign: 'center'
+        }">
+          <div class="stat-icon blue" :style="{
+            width: '48px',
+            height: '48px',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 12px',
+            fontSize: '20px',
+            background: '#e6f7ff',
+            color: '#0052d9'
+          }">
+            <i class="fas fa-file-alt"></i>
+          </div>
+          <div class="stat-value" :style="{
+            fontSize: '24px',
+            fontWeight: '700',
+            color: '#1a1a1a',
+            marginBottom: '4px'
+          }">{{ stats.totalReports }}</div>
+          <div class="stat-label" :style="{
+            fontSize: '13px',
+            color: '#6b7280'
+          }">总报告数</div>
+        </div>
+        
+        <div class="stat-card" :style="{
+          background: 'white',
+          borderRadius: '8px',
+          padding: '16px',
+          border: '1px solid #e5e7eb',
+          textAlign: 'center'
+        }">
+          <div class="stat-icon green" :style="{
+            width: '48px',
+            height: '48px',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 12px',
+            fontSize: '20px',
+            background: '#f0fdf4',
+            color: '#16a34a'
+          }">
+            <i class="fas fa-calendar-week"></i>
+          </div>
+          <div class="stat-value" :style="{
+            fontSize: '24px',
+            fontWeight: '700',
+            color: '#1a1a1a',
+            marginBottom: '4px'
+          }">{{ stats.monthlyNew }}</div>
+          <div class="stat-label" :style="{
+            fontSize: '13px',
+            color: '#6b7280'
+          }">本月新增</div>
+        </div>
+        
+        <div class="stat-card" :style="{
+          background: 'white',
+          borderRadius: '8px',
+          padding: '16px',
+          border: '1px solid #e5e7eb',
+          textAlign: 'center'
+        }">
+          <div class="stat-icon orange" :style="{
+            width: '48px',
+            height: '48px',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 12px',
+            fontSize: '20px',
+            background: '#fff7ed',
+            color: '#ea580c'
+          }">
+            <i class="fas fa-trending-up"></i>
+          </div>
+          <div class="stat-value" :style="{
+            fontSize: '24px',
+            fontWeight: '700',
+            color: '#1a1a1a',
+            marginBottom: '4px'
+          }">+{{ stats.avgImprovement }}%</div>
+          <div class="stat-label" :style="{
+            fontSize: '13px',
+            color: '#6b7280'
+          }">平均改进</div>
+        </div>
+        
+        <div class="stat-card" :style="{
+          background: 'white',
+          borderRadius: '8px',
+          padding: '16px',
+          border: '1px solid #e5e7eb',
+          textAlign: 'center'
+        }">
+          <div class="stat-icon purple" :style="{
+            width: '48px',
+            height: '48px',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 12px',
+            fontSize: '20px',
+            background: '#f3e8ff',
+            color: '#9333ea'
+          }">
+            <i class="fas fa-star"></i>
+          </div>
+          <div class="stat-value" :style="{
+            fontSize: '24px',
+            fontWeight: '700',
+            color: '#1a1a1a',
+            marginBottom: '4px'
+          }">{{ stats.aiCredits }}</div>
+          <div class="stat-label" :style="{
+            fontSize: '13px',
+            color: '#6b7280'
+          }">剩余AI次数</div>
+        </div>
       </div>
 
-      <!-- Tab Content -->
-      <div class="space-y-8">
-        <!-- Overview Tab -->
-        <div v-show="activeTab === 'overview'">
-          <!-- Key Metrics Dashboard -->
-          <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-            <!-- Overall Performance -->
-            <div class="bg-white rounded-lg shadow p-6">
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-sm font-medium text-gray-600">综合评级</p>
-                  <p class="text-3xl font-bold mt-2" :style="{ color: getGradeColor(analysisData.diagnostics?.overallGrade) }">
-                    {{ analysisData.diagnostics?.overallGrade || 'N/A' }}
-                  </p>
-                </div>
-                <div class="p-3 bg-indigo-100 rounded-full">
-                  <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
-                </div>
-              </div>
-              <p class="text-xs text-gray-500 mt-2">{{ getGradeDescription(analysisData.diagnostics?.overallGrade) }}</p>
-            </div>
-
-            <!-- Health Score -->
-            <div class="bg-white rounded-lg shadow p-6">
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-sm font-medium text-gray-600">健康度评分</p>
-                  <p class="text-3xl font-bold mt-2" :class="getHealthScoreClasses(analysisData.diagnostics?.healthScore || 0)">
-                    {{ analysisData.diagnostics?.healthScore?.toFixed(1) || 'N/A' }}
-                  </p>
-                </div>
-                <div class="p-3 bg-green-100 rounded-full">
-                  <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-                  </svg>
-                </div>
-              </div>
-              <p class="text-xs text-gray-500 mt-2">满分100分</p>
-            </div>
-
-            <!-- Critical Issues -->
-            <div class="bg-white rounded-lg shadow p-6">
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-sm font-medium text-gray-600">关键问题</p>
-                  <p class="text-3xl font-bold mt-2 text-red-600">
-                    {{ criticalIssuesCount }}
-                  </p>
-                </div>
-                <div class="p-3 bg-red-100 rounded-full">
-                  <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                  </svg>
-                </div>
-              </div>
-              <p class="text-xs text-gray-500 mt-2">需要立即关注</p>
-            </div>
-
-            <!-- Recommendations -->
-            <div class="bg-white rounded-lg shadow p-6">
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-sm font-medium text-gray-600">智能建议</p>
-                  <p class="text-3xl font-bold mt-2 text-blue-600">
-                    {{ analysisData.recommendations?.length || 0 }}
-                  </p>
-                </div>
-                <div class="p-3 bg-blue-100 rounded-full">
-                  <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                  </svg>
-                </div>
-              </div>
-              <p class="text-xs text-gray-500 mt-2">个性化改进建议</p>
-            </div>
-          </div>
-
-          <!-- Quick Actions -->
-          <div class="bg-white rounded-lg shadow p-6 mb-8">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">快速操作</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <button
-                @click="activeTab = 'diagnostics'"
-                class="flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                </svg>
-                查看详细诊断
+      <!-- Report Sections -->
+      <div class="report-sections" :style="{
+        display: 'grid',
+        gridTemplateColumns: '1fr',
+        gap: '20px'
+      }">
+        <!-- Reports List -->
+        <div class="reports-list" :style="{
+          background: 'white',
+          borderRadius: '12px',
+          padding: '20px',
+          border: '1px solid #dcdcdc',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)'
+        }">
+          <div class="section-title" :style="{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1a1a1a',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }">
+            <span>分析报告</span>
+            <div style="display: flex; gap: 8px;">
+              <button @click="loadReportsData" :style="{
+                padding: '6px 12px',
+                background: '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '12px',
+                cursor: 'pointer'
+              }">
+                <i class="fas fa-refresh" style="margin-right: 4px;"></i>刷新
               </button>
-              <button
-                @click="activeTab = 'recommendations'"
-                class="flex items-center justify-center px-4 py-3 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                </svg>
-                获取改进建议
-              </button>
-              <button
-                @click="activeTab = 'comparison'"
-                class="flex items-center justify-center px-4 py-3 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                </svg>
-                对比分析
+              <button @click="generateNewReport" :style="{
+                padding: '6px 12px',
+                background: '#0052d9',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '12px',
+                cursor: 'pointer'
+              }">
+                <i class="fas fa-plus" style="margin-right: 4px;"></i>新建分析
               </button>
             </div>
           </div>
-        </div>
 
-        <!-- Diagnostics Tab -->
-        <div v-show="activeTab === 'diagnostics'">
-          <DiagnosticBar
-            v-if="analysisData.diagnostics"
-            :diagnostics="analysisData.diagnostics"
-            @generate-recommendations="generateRecommendations"
-            @export-diagnostics="exportDiagnostics"
-          />
-          <div v-else class="text-center py-8 text-gray-500">
-            诊断数据不可用
+          <!-- Filter Tabs -->
+          <div class="filter-tabs" :style="{
+            display: 'flex',
+            gap: '8px',
+            marginBottom: '20px'
+          }">
+            <button
+              v-for="filter in filters"
+              :key="filter.key"
+              @click="activeFilter = filter.key"
+              :class="['filter-tab', { active: activeFilter === filter.key }]"
+              :style="{
+                padding: '8px 16px',
+                border: activeFilter === filter.key ? '1px solid #0052d9' : '1px solid #e5e7eb',
+                borderRadius: '6px',
+                fontSize: '13px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                background: activeFilter === filter.key ? '#0052d9' : 'white',
+                color: activeFilter === filter.key ? 'white' : '#333'
+              }"
+            >
+              {{ filter.label }}
+            </button>
           </div>
-        </div>
 
-        <!-- Recommendations Tab -->
-        <div v-show="activeTab === 'recommendations'">
-          <RecommendationList
-            :recommendations="analysisData.recommendations || []"
-            :loading="recommendationsLoading"
-            :error="recommendationsError"
-            @implement-recommendation="implementRecommendation"
-            @bookmark-recommendation="bookmarkRecommendation"
-            @share-recommendation="shareRecommendation"
-            @refresh-recommendations="generateRecommendations"
-            @retry-load-recommendations="generateRecommendations"
-          />
-        </div>
+          <!-- Reports List -->
+          <div v-if="loading" class="text-center py-8">
+            <div class="inline-flex items-center">
+              <svg class="animate-spin h-5 w-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              加载中...
+            </div>
+          </div>
+          
+          <div v-else-if="filteredReports.length === 0" class="empty-state" :style="{
+            textAlign: 'center',
+            padding: '40px 20px',
+            color: '#6b7280'
+          }">
+            <div class="empty-icon" :style="{
+              fontSize: '48px',
+              color: '#d1d5db',
+              marginBottom: '16px'
+            }">
+              <i class="fas fa-file-chart-pie"></i>
+            </div>
+            <p style="margin-bottom: 8px; font-weight: 500;">暂无AI分析报告</p>
+            <p style="font-size: 14px; color: #9ca3af;">请先创建漏斗并生成分析报告，完成第三步分析后报告将显示在这里</p>
+            <div style="margin-top: 20px;">
+              <router-link to="/funnels" style="
+                display: inline-block;
+                padding: 8px 16px;
+                background: #3b82f6;
+                color: white;
+                text-decoration: none;
+                border-radius: 6px;
+                font-size: 14px;
+              ">
+                <i class="fas fa-plus" style="margin-right: 4px;"></i>创建漏斗
+              </router-link>
+            </div>
+          </div>
+          
+          <div v-else>
+            <div v-for="(funnelReports, funnelName) in groupedReports" :key="funnelName" class="funnel-group" :style="{
+              marginBottom: '24px'
+            }">
+              <!-- Funnel Group Header -->
+              <div class="funnel-group-header" :style="{
+                padding: '12px 16px',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                marginBottom: '12px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }">
+                <div :style="{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }">
+                  <i :class="getReportIcon(funnelName)" :style="{
+                    color: '#64748b',
+                    fontSize: '16px'
+                  }"></i>
+                  <span :style="{
+                    fontWeight: '600',
+                    color: '#1e293b',
+                    fontSize: '14px'
+                  }">{{ funnelName }}</span>
+                </div>
+                <span :style="{
+                  fontSize: '12px',
+                  color: '#64748b',
+                  padding: '2px 8px',
+                  background: '#e2e8f0',
+                  borderRadius: '12px'
+                }">{{ funnelReports.length }} 个报告</span>
+              </div>
 
-        <!-- Comparison Tab -->
-        <div v-show="activeTab === 'comparison'">
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Peer Comparison Results -->
-            <div v-if="analysisData.peerComparison" class="bg-white rounded-lg shadow">
-              <div class="px-4 py-5 sm:p-6">
-                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">同行对比结果</h3>
-                
-                <!-- Performance Grade -->
-                <div class="mb-6 text-center">
-                  <div 
-                    class="inline-flex items-center justify-center w-16 h-16 rounded-full text-white text-2xl font-bold mb-2"
-                    :style="{ backgroundColor: getGradeColor(analysisData.peerComparison.performanceGrade) }"
+              <!-- Reports in this funnel -->
+              <div
+                v-for="report in funnelReports"
+                :key="report.id"
+                @click="goToReport(report)"
+                class="report-item"
+                :class="{ current: report.status === 'current' }"
+                :style="{
+                  padding: '16px',
+                  border: report.status === 'current' ? '1px solid #10b981' : '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  marginBottom: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  background: report.status === 'current' ? '#f0fdf4' : 'white'
+                }"
+              >
+                <div class="report-header" :style="{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  marginBottom: '8px'
+                }">
+                  <div>
+                    <div class="report-title" :style="{
+                      fontWeight: '600',
+                      color: '#1a1a1a',
+                      marginBottom: '4px'
+                    }">{{ report.title }}</div>
+                    <div class="report-period" :style="{
+                      fontSize: '12px',
+                      color: '#0052d9',
+                      fontWeight: '500',
+                      marginBottom: '4px'
+                    }">{{ report.detailedPeriod }}</div>
+                    <div class="report-meta" :style="{
+                      fontSize: '12px',
+                      color: '#6b7280',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }">
+                      <span class="strategy-badge" :style="{
+                        padding: '2px 6px',
+                        borderRadius: '8px',
+                        fontSize: '10px',
+                        fontWeight: '500',
+                        background: report.strategy === '稳健策略' ? '#f0f9ff' : '#fef3c7',
+                        color: report.strategy === '稳健策略' ? '#1e40af' : '#92400e'
+                      }">{{ report.strategy }}</span>
+                      <span>{{ report.analysisDate }}</span>
+                    </div>
+                  </div>
+                  <div class="report-status" 
+                       :class="`status-${report.status}`"
+                       :style="{
+                         padding: '4px 8px',
+                         borderRadius: '12px',
+                         fontSize: '11px',
+                         fontWeight: '500',
+                         background: getStatusBackground(report.status),
+                         color: getStatusColor(report.status)
+                       }"
                   >
-                    {{ analysisData.peerComparison.performanceGrade }}
-                  </div>
-                  <p class="text-sm text-gray-600">综合表现评级</p>
-                </div>
-
-                <!-- Stage Rankings -->
-                <div class="space-y-4">
-                  <div v-for="(ranking, stage) in analysisData.peerComparison.rankings" :key="stage" class="flex items-center justify-between">
-                    <span class="text-sm font-medium text-gray-700">{{ getStageDisplayName(stage) }}</span>
-                    <div class="flex items-center space-x-2">
-                      <span class="text-sm text-gray-500">{{ ranking.percentile }}%</span>
-                      <span 
-                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                        :class="getRankingClasses(ranking.rank)"
-                      >
-                        {{ ranking.rank }}
-                      </span>
-                    </div>
+                    {{ getStatusLabel(report.status) }}
                   </div>
                 </div>
-              </div>
-            </div>
-
-            <!-- Improvement Potential -->
-            <div v-if="analysisData.improvementPotential" class="bg-white rounded-lg shadow">
-              <div class="px-4 py-5 sm:p-6">
-                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">改进潜力分析</h3>
-                
-                <!-- Overall Potential -->
-                <div class="mb-6">
-                  <div class="flex items-center justify-between mb-2">
-                    <span class="text-sm font-medium text-gray-700">整体改进潜力</span>
-                    <span class="text-2xl font-bold text-green-600">
-                      +{{ analysisData.improvementPotential.overallPotential.toFixed(1) }}%
-                    </span>
-                  </div>
-                  <div class="w-full bg-gray-200 rounded-full h-3">
-                    <div 
-                      class="bg-green-500 h-3 rounded-full transition-all duration-500"
-                      :style="{ width: `${Math.min(analysisData.improvementPotential.overallPotential * 10, 100)}%` }"
-                    ></div>
-                  </div>
-                </div>
-
-                <!-- Stage Improvements -->
-                <div class="space-y-4">
-                  <div v-for="(potential, stage) in getStageImprovements(analysisData.improvementPotential)" :key="stage" class="border border-gray-200 rounded-lg p-3">
-                    <div class="flex items-center justify-between mb-2">
-                      <span class="text-sm font-medium text-gray-700">{{ getStageDisplayName(stage) }}</span>
-                      <span class="text-sm font-bold text-orange-600">
-                        +{{ potential.potential.toFixed(1) }}%
-                      </span>
-                    </div>
-                    <div class="grid grid-cols-3 gap-2 text-xs text-gray-500">
-                      <div>
-                        <div>当前: {{ potential.current.toFixed(1) }}%</div>
-                      </div>
-                      <div>
-                        <div>目标: {{ potential.benchmark.toFixed(1) }}%</div>
-                      </div>
-                      <div>
-                        <div>影响: +{{ potential.impact.toFixed(1) }}%</div>
-                      </div>
-                    </div>
-                  </div>
+                <div class="report-meta" :style="{
+                  display: 'flex',
+                  gap: '16px',
+                  fontSize: '12px',
+                  color: '#6b7280'
+                }">
+                  <span :style="{
+                    padding: '4px 8px',
+                    background: report.datasetPeriodStart ? '#e6f7ff' : '#fef3c7',
+                    color: report.datasetPeriodStart ? '#0052d9' : '#92400e',
+                    borderRadius: '6px',
+                    fontWeight: '500'
+                  }">
+                    <i class="fas fa-database" style="margin-right: 4px;"></i>{{ report.period }}
+                  </span>
+                  <span>
+                    <i class="fas fa-chart-line" style="margin-right: 4px;"></i>{{ report.improvement }}
+                  </span>
+                  <span>
+                    <i class="fas fa-clock" style="margin-right: 4px;"></i>{{ report.analysisDate }}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress Modal -->
+  <div 
+    v-if="reportGenerating"
+    :style="{
+      position: 'fixed',
+      top: '0',
+      left: '0',
+      right: '0',
+      bottom: '0',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: '9999'
+    }"
+  >
+    <div :style="{
+      background: 'white',
+      borderRadius: '12px',
+      padding: '32px',
+      minWidth: '400px',
+      maxWidth: '500px',
+      boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)',
+      textAlign: 'center'
+    }">
+      <!-- Progress Header -->
+      <div :style="{
+        fontSize: '20px',
+        fontWeight: '600',
+        color: '#1a1a1a',
+        marginBottom: '8px'
+      }">
+        正在生成报告
+      </div>
+      
+      <div :style="{
+        color: '#6b7280',
+        marginBottom: '24px',
+        fontSize: '14px'
+      }">
+        请稍候，我们正在为您生成完整的分析报告...
+      </div>
+
+      <!-- Progress Bar -->
+      <div :style="{
+        width: '100%',
+        height: '8px',
+        backgroundColor: '#f3f4f6',
+        borderRadius: '4px',
+        overflow: 'hidden',
+        marginBottom: '16px'
+      }">
+        <div :style="{
+          width: reportProgress + '%',
+          height: '100%',
+          background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+          borderRadius: '4px',
+          transition: 'width 0.3s ease'
+        }"></div>
+      </div>
+
+      <!-- Progress Text -->
+      <div :style="{
+        fontSize: '14px',
+        color: '#4b5563',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px'
+      }">
+        <div class="spinner" :style="{
+          width: '16px',
+          height: '16px',
+          border: '2px solid #e5e7eb',
+          borderTop: '2px solid #3b82f6',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }"></div>
+        <span>{{ reportProgress }}% 完成</span>
       </div>
     </div>
   </div>
 </template>
 
+<style scoped>
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>
+
 <script setup lang="ts">
-import { ref, computed, onMounted, defineComponent } from 'vue'
-import { useRoute } from 'vue-router'
-import DiagnosticBar from '@/components/analysis/DiagnosticBar.vue'
-import RecommendationList from '@/components/analysis/RecommendationList.vue'
-import { analysisApi } from '@/api/analysis'
-import type { 
-  AnalysisResponse, 
-  FunnelMetricData, 
-  GeneratedRecommendation,
-  DiagnosticResult,
-  ImprovementPotential
-} from '@/types/funnel'
+import { ref, computed, onMounted, onActivated, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { dashboardAPI } from '@/api/dashboard'
+import { analyticsAPI } from '@/api/analytics'
+import { aiAnalysisAPI } from '@/api/aiAnalysis'
+import { useAuthStore } from '@/stores/auth'
 
-// Component setup
-const route = useRoute()
-
-// Reactive state
-const loading = ref(false)
-const loadingStatus = ref('')
-const error = ref<string | null>(null)
-const analysisData = ref<AnalysisResponse | null>(null)
-const activeTab = ref('overview')
-const recommendationsLoading = ref(false)
-const recommendationsError = ref<string | null>(null)
-
-// Configuration
-const industry = ref('software') // Could be dynamic based on user input
-const companySize = ref('medium')
-const region = ref('china')
-
-// Sample data for demonstration
-const sampleCompanyData: FunnelMetricData = {
-  stage_1: { visitors: 1000, converted: 150, conversionRate: 15.0 },
-  stage_2: { visitors: 150, converted: 45, conversionRate: 30.0 },
-  stage_3: { visitors: 45, converted: 18, conversionRate: 40.0 },
-  stage_4: { visitors: 18, converted: 9, conversionRate: 50.0 }
+interface AnalysisReport {
+  id: string
+  title: string
+  funnelName: string
+  status: 'current' | 'completed' | 'archived'
+  createdAt: Date
+  period: string
+  improvement: string
+  type: string
 }
 
-// Tab configuration
-const tabs = computed(() => [
+interface QuickAction {
+  id: string
+  title: string
+  description: string
+  icon: string
+  iconBackground: string
+  iconColor: string
+  action: string
+}
+
+// Component setup
+const router = useRouter()
+const route = useRoute()
+const authStore = useAuthStore()
+
+// Reactive state
+const loading = ref(true)
+const error = ref<string | null>(null)
+const reportGenerating = ref(false)
+const reportProgress = ref(0)
+const reports = ref<AnalysisReport[]>([])
+const activeFilter = ref('all')
+// Sidebar state is managed by the main Sidebar component
+const sidebarCollapsed = ref(false)
+
+// Stats data
+const stats = ref({
+  totalReports: 0,
+  monthlyNew: 0,
+  avgImprovement: 0,
+  aiCredits: 10 // 初始值，将在loadReportsData中更新
+})
+
+// Filter options
+const filters = [
+  { key: 'all', label: '全部' },
+  { key: 'current', label: '当前进行中' },
+  { key: 'completed', label: '已完成' },
+  { key: 'archived', label: '已归档' }
+]
+
+// Quick actions
+const quickActions: QuickAction[] = [
   {
-    id: 'overview',
-    name: '概览',
-    icon: defineComponent({
-      render: () => {
-        return (
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-          </svg>
-        )
-      }
-    })
+    id: 'generate',
+    title: '生成新报告',
+    description: '基于最新数据进行AI分析',
+    icon: 'fas fa-brain',
+    iconBackground: '#e6f7ff',
+    iconColor: '#0052d9',
+    action: 'generate'
   },
   {
-    id: 'diagnostics',
-    name: '诊断分析',
-    icon: defineComponent({
-      render: () => {
-        return (
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-          </svg>
-        )
-      }
-    }),
-    badge: analysisData.value?.diagnostics ? (analysisData.value.diagnostics.weakPoints.length > 0 ? analysisData.value.diagnostics.weakPoints.length : undefined) : undefined,
-    badgeClass: 'bg-red-100 text-red-800'
+    id: 'view_current',
+    title: '查看当前报告',
+    description: '查看正在进行的分析结果',
+    icon: 'fas fa-eye',
+    iconBackground: '#f0fdf4',
+    iconColor: '#16a34a',
+    action: 'view_current'
   },
   {
-    id: 'recommendations',
-    name: '智能建议',
-    icon: defineComponent({
-      render: () => {
-        return (
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-          </svg>
-        )
-      }
-    }),
-    badge: analysisData.value?.recommendations?.length || undefined,
-    badgeClass: 'bg-blue-100 text-blue-800'
+    id: 'export',
+    title: '导出报告',
+    description: '下载PDF格式的分析报告',
+    icon: 'fas fa-download',
+    iconBackground: '#fff7ed',
+    iconColor: '#ea580c',
+    action: 'export'
   },
   {
-    id: 'comparison',
-    name: '对比分析',
-    icon: defineComponent({
-      render: () => {
-        return (
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 13v-1m4 1v-3m4 3V8M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
-          </svg>
-        )
-      }
-    })
+    id: 'schedule',
+    title: '定时报告',
+    description: '设置自动生成分析报告',
+    icon: 'fas fa-clock',
+    iconBackground: '#f3e8ff',
+    iconColor: '#9333ea',
+    action: 'schedule'
+  },
+  {
+    id: 'settings',
+    title: '报告设置',
+    description: '自定义报告模板和通知',
+    icon: 'fas fa-cog',
+    iconBackground: '#f3f4f6',
+    iconColor: '#6b7280',
+    action: 'settings'
   }
-])
+]
 
 // Computed properties
-const criticalIssuesCount = computed(() => {
-  if (!analysisData.value?.diagnostics?.weakPoints) return 0
-  return analysisData.value.diagnostics.weakPoints.filter(wp => wp.severity === 'critical').length
+const filteredReports = computed(() => {
+  let filtered = reports.value
+  if (activeFilter.value !== 'all') {
+    filtered = reports.value.filter(report => report.status === activeFilter.value)
+  }
+  return filtered
+})
+
+// 按漏斗分组显示报告
+const groupedReports = computed(() => {
+  const grouped: { [key: string]: any[] } = {}
+  filteredReports.value.forEach(report => {
+    if (!grouped[report.funnelName]) {
+      grouped[report.funnelName] = []
+    }
+    grouped[report.funnelName].push(report)
+  })
+  
+  // 按漏斗名称排序，每个漏斗内部按时间倒序
+  Object.keys(grouped).forEach(funnelName => {
+    grouped[funnelName].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+  })
+  
+  return grouped
 })
 
 // Methods
-const performAnalysis = async () => {
+// 验证报告数据的真实性
+const validateReportData = (report: any) => {
+  // 检查是否有基本的分析内容
+  if (!report.content || Object.keys(report.content).length === 0) {
+    return false
+  }
+  
+  // 检查是否至少有关键洞察数据
+  const hasKeyInsights = report.content.keyInsights && 
+    Object.keys(report.content.keyInsights).length > 0
+  
+  // 检查是否有完整的第三步分析（完整报告）
+  const hasCompleteAnalysis = report.content.detailedAnalysis && 
+    report.content.detailedAnalysis.length > 0
+  
+  // 检查是否有策略选择
+  const hasStrategy = report.content.selectedStrategy && 
+    Object.keys(report.content.selectedStrategy).length > 0
+  
+  // 至少需要有关键洞察才算有效报告
+  return hasKeyInsights && (hasCompleteAnalysis || hasStrategy)
+}
+
+// 计算报告的改进数据
+const calculateReportImprovement = (report: any) => {
+  const content = report.content || {}
+  
+  // 尝试从多个可能的位置获取改进数据
+  if (content.expectedROI?.revenue_impact) {
+    return content.expectedROI.revenue_impact
+  }
+  
+  if (content.keyInsights?.teaser_analysis?.expected_roi) {
+    return content.keyInsights.teaser_analysis.expected_roi
+  }
+  
+  if (content.selectedStrategy?.expected_roi) {
+    return content.selectedStrategy.expected_roi
+  }
+  
+  // 如果没有真实数据，返回明确的未知状态
+  return '等待AI分析完成'
+}
+
+const loadReportsData = async () => {
   try {
     loading.value = true
     error.value = null
     
-    loadingStatus.value = '准备分析数据...'
+    console.log('🔄 重新加载报告数据...')
     
-    const request = {
-      companyData: sampleCompanyData,
-      industry: industry.value,
-      companySize: companySize.value,
-      region: region.value,
-      includeRecommendations: true,
-      includeDiagnostics: true,
-      includePeerComparison: true,
-      includeImprovementPotential: true,
-      maxRecommendations: 12
-    }
+    // Load AI analysis reports from backend
+    const reportsResponse = await aiAnalysisAPI.getReports()
+    console.log('📊 API响应:', reportsResponse)
+    console.log('📊 API返回的报告数据:', JSON.stringify(reportsResponse.data, null, 2))
     
-    loadingStatus.value = '执行综合分析...'
-    
-    analysisData.value = await analysisApi.performComprehensiveAnalysis(request)
-    
-    loadingStatus.value = '分析完成'
-    
-  } catch (err) {
-    console.error('Analysis failed:', err)
-    error.value = err instanceof Error ? err.message : '分析失败，请稍后重试'
-  } finally {
-    loading.value = false
-    loadingStatus.value = ''
-  }
-}
-
-const refreshAnalysis = async () => {
-  await performAnalysis()
-}
-
-const generateRecommendations = async () => {
-  try {
-    recommendationsLoading.value = true
-    recommendationsError.value = null
-    
-    const recommendations = await analysisApi.generateRecommendations({
-      companyData: sampleCompanyData,
-      industry: industry.value,
-      companySize: companySize.value,
-      region: region.value,
-      maxRecommendations: 12,
-      includeCustomRules: true
-    })
-    
-    if (analysisData.value) {
-      analysisData.value.recommendations = recommendations
-    }
-    
-  } catch (err) {
-    console.error('Failed to generate recommendations:', err)
-    recommendationsError.value = err instanceof Error ? err.message : '生成建议失败'
-  } finally {
-    recommendationsLoading.value = false
-  }
-}
-
-const loadSampleData = async () => {
-  // Load with sample data for demonstration
-  try {
-    loading.value = true
-    error.value = null
-    
-    // Simulate API call with sample data
-    const sampleAnalysis: AnalysisResponse = {
-      diagnostics: {
-        overallGrade: 'C',
-        healthScore: 65.5,
-        stageGrades: {
-          stage_1: { grade: 'B', percentile: 70, status: '良好表现' },
-          stage_2: { grade: 'C', percentile: 55, status: '平均表现' },
-          stage_3: { grade: 'C', percentile: 60, status: '平均表现' },
-          stage_4: { grade: 'A', percentile: 85, status: '优秀表现' }
-        },
-        weakPoints: [
-          {
-            stage: 'stage_2',
-            severity: 'major',
-            description: '有效触达阶段转化率低于行业平均水平',
-            currentRate: 30.0,
-            benchmarkRate: 35.0,
-            improvementNeeded: 5.0
-          }
-        ],
-        improvementPriorities: [
-          {
-            stage: 'stage_2',
-            priority: 'high',
-            impactScore: 8.5,
-            difficultyScore: 6.0,
-            roiEstimate: 1.42
-          }
-        ],
-        crossStageAnalysis: {
-          dropOffPoints: [
-            {
-              from: '线索生成',
-              to: '有效触达',
-              dropOffRate: 85.0,
-              severity: 'high'
-            }
-          ],
-          flowConsistency: 72.0,
-          bottleneckStage: 'stage_2'
+    if (reportsResponse.success && reportsResponse.data && reportsResponse.data.length > 0) {
+      // 转换报告数据格式，同时过滤无效报告
+      const validReports = reportsResponse.data.filter(validateReportData)
+      console.log(`📊 过滤后的有效报告数量: ${validReports.length}/${reportsResponse.data.length}`)
+      
+      reports.value = validReports.map((report: any) => {
+        // 格式化数据集期间
+        let period = '数据期间：未指定'
+        let detailedPeriod = '未指定数据期间'
+        
+        if (report.datasetPeriodStart) {
+          const periodDate = new Date(report.datasetPeriodStart)
+          period = `数据期间：${periodDate.toLocaleDateString('zh-CN', { 
+            year: 'numeric', 
+            month: 'long',
+            day: 'numeric'
+          })}`
+          detailedPeriod = periodDate.toLocaleDateString('zh-CN', { 
+            year: 'numeric', 
+            month: 'long',
+            day: 'numeric'
+          })
         }
-      },
-      recommendations: [
-        {
-          id: 'rec_1',
-          category: 'user_experience_improvement',
-          priority: 'high',
-          title: '优化客户体验流程',
-          description: '通过改善客户接触和沟通体验减少中间流失',
-          actionItems: [
-            '优化客户接触时机，建立最佳联系时间表',
-            '改进初次沟通话术，提升客户响应率',
-            '建立多渠道触达机制（电话、邮件、微信等）'
-          ],
-          expectedImpact: '预计减少中间阶段流失15-25%',
-          implementationTime: '2-3周',
-          difficulty: 'medium',
-          roiEstimate: 7.8,
-          resources: ['销售团队', 'CRM系统', '客户服务工具'],
-          successMetrics: ['客户响应率', '阶段转化率', '客户满意度'],
-          applicableStages: ['stage_2', 'stage_3']
+        
+        return {
+          id: report.id,
+          title: `${report.funnelName} - ${report.strategy === 'stable' ? '稳健策略' : '激进策略'}`,
+          funnelName: report.funnelName,
+          status: 'completed' as const,
+          createdAt: new Date(report.createdAt),
+          period: period,
+          detailedPeriod: detailedPeriod,
+          datasetPeriodStart: report.datasetPeriodStart,
+          improvement: calculateReportImprovement(report),
+          type: report.reportType === 'complete' ? '完整分析' : '策略分析',
+          strategy: report.strategy === 'stable' ? '稳健策略' : '激进策略',
+          timestamp: new Date(report.createdAt).toLocaleString('zh-CN'),
+          analysisDate: `分析时间：${new Date(report.createdAt).toLocaleDateString('zh-CN', { 
+            year: 'numeric', 
+            month: 'long',
+            day: 'numeric'
+          })}`
         }
-      ],
-      peerComparison: {
-        rankings: {
-          stage_1: { percentile: 70, rank: 'Good' },
-          stage_2: { percentile: 55, rank: 'Average' },
-          stage_3: { percentile: 60, rank: 'Average' },
-          stage_4: { percentile: 85, rank: 'Excellent' },
-          overall: { percentile: 65, rank: 'Good' }
-        },
-        performanceGrade: 'C',
-        benchmarkData: {}
-      },
-      improvementPotential: {
-        stage_1: { current: 15.0, benchmark: 18.0, potential: 3.0, impact: 1.2 },
-        stage_2: { current: 30.0, benchmark: 35.0, potential: 5.0, impact: 2.1 },
-        stage_3: { current: 40.0, benchmark: 42.0, potential: 2.0, impact: 0.8 },
-        stage_4: { current: 50.0, benchmark: 48.0, potential: 0.0, impact: 0.0 },
-        overallPotential: 4.1
-      },
-      timestamp: new Date()
+      })
+      
+      // 按创建时间倒序排列，最新的在前面
+      reports.value.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      
+      // 更新统计数据
+      const monthAgo = new Date()
+      monthAgo.setMonth(monthAgo.getMonth() - 1)
+      
+      // 计算实际的平均改进率
+      const calculateAvgImprovement = () => {
+        if (reports.value.length === 0) return 0
+        
+        const improvementValues = reports.value
+          .map((r: any) => {
+            // 提取改进数据中的数值
+            const improvementStr = r.improvement || '0%'
+            const match = improvementStr.match(/(\d+(?:\.\d+)?)/)
+            return match ? parseFloat(match[1]) : 0
+          })
+          .filter(val => val > 0)
+        
+        if (improvementValues.length === 0) return 0
+        return Math.round(improvementValues.reduce((sum, val) => sum + val, 0) / improvementValues.length)
+      }
+      
+      stats.value = {
+        totalReports: reports.value.length,
+        monthlyNew: reports.value.filter((r: any) => new Date(r.createdAt) > monthAgo).length,
+        avgImprovement: calculateAvgImprovement(),
+        aiCredits: authStore.user?.analysisQuota || 10 // 从用户信息获取
+      }
+    } else {
+      // 如果没有报告，显示空状态
+      reports.value = []
+      stats.value = {
+        totalReports: 0,
+        monthlyNew: 0,
+        avgImprovement: 0,
+        aiCredits: authStore.user?.analysisQuota || 10
+      }
     }
     
-    analysisData.value = sampleAnalysis
-    
   } catch (err) {
-    console.error('Failed to load sample data:', err)
-    error.value = '加载示例数据失败'
+    console.error('Failed to load reports data:', err)
+    error.value = err instanceof Error ? err.message : '加载报告数据失败'
+    
+    // 错误时设置空状态
+    reports.value = []
+    stats.value = {
+      totalReports: 0,
+      monthlyNew: 0,
+      avgImprovement: 0,
+      aiCredits: authStore.user?.analysisQuota || 10
+    }
   } finally {
     loading.value = false
   }
 }
 
-const implementRecommendation = (recommendation: GeneratedRecommendation) => {
-  console.log('Implementing recommendation:', recommendation.title)
-  // TODO: Implement recommendation tracking/execution
+const generateNewReport = () => {
+  router.push('/dashboard')
 }
 
-const bookmarkRecommendation = (recommendation: GeneratedRecommendation) => {
-  console.log('Bookmarking recommendation:', recommendation.title)
-  // TODO: Implement recommendation bookmarking
+const goToReport = (report: AnalysisReport) => {
+  // 直接跳转到报告页面，无需进度条和延迟
+  router.push(`/analysis/report/${report.id}`)
 }
 
-const shareRecommendation = (recommendation: GeneratedRecommendation) => {
-  console.log('Sharing recommendation:', recommendation.title)
-  // TODO: Implement recommendation sharing
-}
-
-const exportReport = () => {
-  console.log('Exporting comprehensive report...')
-  // TODO: Implement comprehensive report export
-}
-
-const exportDiagnostics = () => {
-  console.log('Exporting diagnostics report...')
-  // TODO: Implement diagnostics export
+const handleQuickAction = (action: QuickAction) => {
+  switch (action.action) {
+    case 'generate':
+      generateNewReport()
+      break
+    case 'view_current':
+      const currentReport = reports.value.find(r => r.status === 'current')
+      if (currentReport) {
+        goToReport(currentReport)
+      } else {
+        // If no current report, go to AI reports page to see all reports
+        router.push('/ai/reports')
+      }
+      break
+    case 'export':
+      alert('导出功能开发中...\n\n将支持导出为PDF、Excel等格式')
+      break
+    case 'schedule':
+      alert('定时报告功能开发中...\n\n将支持设置每周/每月自动生成报告')
+      break
+    case 'settings':
+      router.push('/settings')
+      break
+  }
 }
 
 // Helper methods
-const getGradeColor = (grade?: string): string => {
-  const colors = {
-    A: '#10B981', // green-500
-    B: '#3B82F6', // blue-500
-    C: '#F59E0B', // yellow-500
-    D: '#F97316', // orange-500
-    F: '#EF4444'  // red-500
-  }
-  return colors[grade as keyof typeof colors] || '#6B7280'
-}
-
-const getGradeDescription = (grade?: string): string => {
-  const descriptions = {
-    A: '优秀表现，处于行业领先水平',
-    B: '良好表现，高于行业平均水平',
-    C: '平均表现，接近行业基准线',
-    D: '待改进表现，低于行业平均',
-    F: '需要重点改进，远低于行业水平'
-  }
-  return descriptions[grade as keyof typeof descriptions] || '暂无评级'
-}
-
-const getHealthScoreClasses = (score: number): string => {
-  if (score >= 80) return 'text-green-600'
-  if (score >= 60) return 'text-blue-600'
-  if (score >= 40) return 'text-yellow-600'
-  return 'text-red-600'
-}
-
-const getStageDisplayName = (stage: string): string => {
-  const names = {
-    stage_1: '线索生成',
-    stage_2: '有效触达',
-    stage_3: '商机转化',
-    stage_4: '成交完成'
-  }
-  return names[stage as keyof typeof names] || stage
-}
-
-const getRankingClasses = (rank: string): string => {
-  const classes = {
-    'Excellent': 'bg-green-100 text-green-800',
-    'Good': 'bg-blue-100 text-blue-800',
-    'Average': 'bg-yellow-100 text-yellow-800',
-    'Below Average': 'bg-orange-100 text-orange-800',
-    'Poor': 'bg-red-100 text-red-800'
-  }
-  return classes[rank as keyof typeof classes] || 'bg-gray-100 text-gray-800'
-}
-
-const getStageImprovements = (potential: ImprovementPotential) => {
-  return {
-    stage_1: potential.stage_1,
-    stage_2: potential.stage_2,
-    stage_3: potential.stage_3,
-    stage_4: potential.stage_4
-  }
-}
-
-const formatDateTime = (date: Date): string => {
+const formatDate = (date: Date): string => {
   return new Intl.DateTimeFormat('zh-CN', {
     year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  }).format(new Date(date))
+    month: 'long',
+    day: 'numeric'
+  }).format(date)
+}
+
+// 完全符合模板的报告生成函数
+const generateTemplateCompliantReportHTML = (report: any) => {
+  const content = report.content || {}
+  const funnelData = content.funnelData || {}
+  const companyInfo = content.companyInfo || {}
+  const keyInsights = content.keyInsights || {}
+  const selectedStrategy = content.selectedStrategy || {}
+  const detailedAnalysis = content.detailedAnalysis || ''
+  const stages = funnelData.stages || funnelData.steps || []
+  
+  console.log('📊 生成符合模板的报告HTML，原始数据:', JSON.stringify(content, null, 2))
+  
+  // 计算关键指标
+  const healthScore = calculateHealthScore(content)
+  const healthScoreDeg = Math.round((healthScore / 100) * 360)
+  
+  const headerTitle = funnelData.funnel_name || funnelData.name || report.funnelName || '客户漏斗分析报告'
+  
+  // 计算转化率
+  const bottleneckRate = getBottleneckConversionRate(stages)
+  const advantageRate = getHighestConversionRate(stages)
+  
+  // 从完整模板复制的HTML结构
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${headerTitle}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: #f5f5f7;
+            color: #1d1d1f;
+            line-height: 1.47059;
+            padding: 40px 20px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 18px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02), 0 10px 20px rgba(0, 0, 0, 0.04), 0 20px 40px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            color: #1d1d1f;
+            padding: 60px 40px;
+            text-align: center;
+            position: relative;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        }
+        
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0,0,0,0.1), transparent);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            letter-spacing: -0.025em;
+            color: #1d1d1f;
+        }
+
+        .header p {
+            font-size: 1.125rem;
+            color: #6e6e73;
+            font-weight: 400;
+            letter-spacing: -0.01em;
+        }
+
+        .section {
+            padding: 60px 50px;
+            position: relative;
+        }
+        
+        .section::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0,0,0,0.08) 20%, rgba(0,0,0,0.08) 80%, transparent);
+        }
+        
+        .section:last-child::after {
+            display: none;
+        }
+
+        .section-title {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 40px;
+            position: relative;
+            padding-left: 20px;
+            letter-spacing: -0.015em;
+            color: #1d1d1f;
+        }
+
+        .section-title::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 3px;
+            height: 100%;
+            background: #3b82f6;
+            border-radius: 2px;
+        }
+
+        /* Executive Summary Styles */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .summary-card {
+            padding: 32px;
+            border-radius: 20px;
+            position: relative;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02), 0 10px 20px rgba(0, 0, 0, 0.04);
+        }
+        
+        .summary-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.03), 0 20px 40px rgba(0, 0, 0, 0.08), 0 40px 80px rgba(0, 0, 0, 0.12);
+            background: rgba(255, 255, 255, 0.85);
+        }
+
+        .summary-card.health {
+            background: #ffffff;
+            border-left: 3px solid #3b82f6;
+        }
+
+        .summary-card.bottleneck {
+            background: #ffffff;
+            border-left: 3px solid #f59e0b;
+        }
+
+        .summary-card.growth {
+            background: #ffffff;
+            border-left: 3px solid #98FB98;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .card-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 24px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 10px 20px rgba(0, 0, 0, 0.04);
+        }
+
+        .card-icon.health {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .card-icon.bottleneck {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .card-icon.growth {
+            background: #98FB98;
+            color: white;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1d1d1f;
+            letter-spacing: -0.01em;
+        }
+
+        .progress-circle {
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 24px auto;
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02), 0 10px 20px rgba(0, 0, 0, 0.04);
+            background: conic-gradient(#3b82f6 0deg ${healthScoreDeg}deg, #f3f4f6 ${healthScoreDeg}deg 360deg);
+        }
+
+        .progress-inner {
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+        }
+
+        .progress-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1d1d1f;
+            letter-spacing: -0.01em;
+        }
+
+        .progress-label {
+            font-size: 0.875rem;
+            color: #6e6e73;
+            font-weight: 400;
+        }
+
+        .card-content {
+            margin-top: 20px;
+        }
+
+        .card-content li {
+            margin: 10px 0;
+            list-style: none;
+            position: relative;
+            padding-left: 20px;
+        }
+
+        .card-content li::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: #9ca3af;
+            font-weight: normal;
+        }
+
+        .action-button {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 10px 20px rgba(59, 130, 246, 0.15);
+            font-size: 14px;
+        }
+        
+        .action-button:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.1), 0 15px 30px rgba(59, 130, 246, 0.25);
+        }
+
+        .action-button.growth {
+            background: linear-gradient(135deg, #98FB98, #90EE90);
+        }
+        
+        .action-button.growth:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.1), 0 15px 30px rgba(152, 251, 152, 0.25);
+        }
+
+        /* Funnel Styles */
+        .funnel-container {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .funnel-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1d1d1f;
+            margin-bottom: 36px;
+            letter-spacing: -0.012em;
+        }
+
+        .funnel-steps {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1000px;
+            margin: 0 auto 40px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .funnel-step {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+            padding: 24px 28px;
+            border-radius: 16px;
+            text-align: center;
+            position: relative;
+            min-width: 150px;
+            height: 90px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 10px 20px rgba(99, 102, 241, 0.15);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .funnel-step:hover {
+            transform: translateY(-6px) scale(1.02);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1), 0 20px 40px rgba(99, 102, 241, 0.25);
+        }
+
+        .step-label {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .step-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .funnel-arrow {
+            font-size: 1.2rem;
+            color: #6b7280;
+            margin: 0 10px;
+        }
+
+        /* Industry Analysis Styles */
+        .industry-grid {
+            display: grid;
+            grid-template-columns: 0.7fr 1.3fr;
+            gap: 40px;
+            margin-bottom: 40px;
+            align-items: start;
+        }
+
+        .industry-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 32px;
+            border-radius: 18px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02), 0 10px 20px rgba(0, 0, 0, 0.04);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        }
+        
+        .industry-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.03), 0 20px 40px rgba(0, 0, 0, 0.08);
+            background: rgba(255, 255, 255, 0.85);
+        }
+
+        .industry-card h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .industry-card h3::before {
+            content: '🎯';
+            margin-right: 10px;
+        }
+
+        .industry-card:last-child h3::before {
+            content: '💡';
+        }
+
+        .insights-box {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 16px;
+            padding: 28px;
+            margin-top: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02), 0 10px 20px rgba(0, 0, 0, 0.04);
+            border-left: 4px solid #6366f1;
+        }
+
+        .insights-box p {
+            color: #4682B4;
+            line-height: 1.7;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 16px;
+                border-radius: 12px;
+            }
+            
+            .section {
+                padding: 32px 20px;
+            }
+            
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .funnel-steps {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .industry-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .funnel-arrow {
+                transform: rotate(90deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>${headerTitle}</h1>
+            <p>数据驱动的业务增长洞察与优化建议</p>
+        </div>
+
+        <!-- Section 1: Executive Summary -->
+        <div class="section" style="background: #ffffff; margin: 0; border-radius: 0;">
+            <h2 class="section-title">📊 执行摘要</h2>
+            
+            <div class="summary-cards">
+                <div class="summary-card health">
+                    <div class="card-header">
+                        <div class="card-icon health">📊</div>
+                        <h3 class="card-title">健康度分析</h3>
+                    </div>
+                    
+                    <div class="progress-circle health">
+                        <div class="progress-inner">
+                            <div class="progress-value">${healthScore}%</div>
+                            <div class="progress-label">健康度</div>
+                        </div>
+                    </div>
+                    
+                    <ul class="card-content">
+                        <li>整体转化表现${healthScore > 70 ? '良好' : '需要改进'}，综合评分${healthScore}分</li>
+                        <li>数据完整性${stages.length > 0 ? '完整' : '不足'}，共${stages.length}个分析阶段</li>
+                    </ul>
+                </div>
+
+                <div class="summary-card bottleneck">
+                    <div class="card-header">
+                        <div class="card-icon bottleneck">🔍</div>
+                        <h3 class="card-title">核心瓶颈分析</h3>
+                    </div>
+                    
+                    <div class="card-content">
+                        <p style="margin-bottom: 15px;">${keyInsights.key_insight?.bottleneck_stage || keyInsights.bottleneck_stage || keyInsights.main_bottleneck || '等待AI分析完成'}，转化率${bottleneckRate}%</p>
+                        <ul>
+                            <li>${keyInsights.key_insight?.conversion_issue || keyInsights.teaser_analysis?.core_problem || keyInsights.core_issue || '等待AI分析完成'}</li>
+                            <li>${keyInsights.key_insight?.quick_suggestion || keyInsights.teaser_analysis?.quick_advice || keyInsights.primary_suggestion || '等待AI分析完成'}</li>
+                            <li>${keyInsights.key_insight?.potential_impact || keyInsights.impact_assessment || '等待AI分析完成'}</li>
+                        </ul>
+                        <button class="action-button">流程优化</button>
+                    </div>
+                </div>
+
+                <div class="summary-card growth">
+                    <div class="card-header">
+                        <div class="card-icon growth">📈</div>
+                        <h3 class="card-title">最大增长机会</h3>
+                    </div>
+                    
+                    <div class="card-content">
+                        <p style="margin-bottom: 15px;">${selectedStrategy?.conversion_improvement || keyInsights.teaser_analysis?.conversion_improvement || '等待AI分析完成'}，ROI预期${selectedStrategy?.expected_roi || keyInsights.teaser_analysis?.expected_roi || keyInsights.roi_estimate || '等待AI分析完成'}</p>
+                        <ul>
+                            <li><strong>策略特点：</strong>${selectedStrategy?.features || selectedStrategy?.tag || selectedStrategy?.description || '等待AI分析完成'}</li>
+                            <li><strong>核心行动：</strong>${selectedStrategy?.core_actions || selectedStrategy?.actions || selectedStrategy?.steps || '等待AI分析完成'}</li>
+                            <li><strong>投资水平：</strong>${selectedStrategy?.investment || selectedStrategy?.cost || selectedStrategy?.budget || '等待AI分析完成'}</li>
+                        </ul>
+                        <button class="action-button growth">优化空间</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Funnel Analysis -->
+        <div class="section" style="background: #ffffff; margin: 0; border-radius: 0;">
+            <h2 class="section-title">🔍 核心分析</h2>
+            
+            <div class="funnel-container">
+                <h3 class="funnel-title">${funnelData.funnel_name || '业务增长漏斗'}</h3>
+                
+                <div class="funnel-steps">
+                    ${generateFunnelStepsHTML(stages)}
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Industry Analysis -->
+        <div class="section" style="background: #ffffff; margin: 0; border-radius: 0;">
+            <h2 class="section-title">📈 行业分析</h2>
+            
+            <div class="industry-grid">
+                <div class="industry-card" style="background: rgba(255, 255, 255, 0.85); padding: 36px;">
+                    <h3>公司信息</h3>
+                    <div style="margin-bottom: 24px;">
+                        <p style="margin-bottom: 12px; font-weight: 600; font-size: 1.1rem;">${companyInfo.company_name || companyInfo.name || '分析对象'}</p>
+                        <p style="margin-bottom: 8px; color: #666;"><strong>行业：</strong>${companyInfo.industry || companyInfo.sector || '未指定'}</p>
+                        <p style="margin-bottom: 8px; color: #666;"><strong>地区：</strong>${companyInfo.city || companyInfo.location || companyInfo.region || '未指定'}</p>
+                        <p style="margin-bottom: 8px; color: #666;"><strong>团队规模：</strong>${companyInfo.team_size || companyInfo.employees || '未指定'}</p>
+                        <p style="margin-bottom: 8px; color: #666;"><strong>销售模式：</strong>${companyInfo.sales_model || companyInfo.business_model || 'B2B'}</p>
+                    </div>
+                    
+                    <div class="insights-box">
+                        <p><strong>公司描述：</strong>${companyInfo.company_description || companyInfo.description || '暂无描述'}</p>
+                    </div>
+                    
+                    <div class="insights-box">
+                        <p><strong>ROI预期：</strong>${keyInsights.teaser_analysis?.expected_roi || selectedStrategy?.expected_roi || keyInsights.roi_estimate || '等待AI分析完成'}</p>
+                    </div>
+                </div>
+
+                <div class="industry-card">
+                    <h3>优化建议与执行策略</h3>
+                    <p style="margin-bottom: 20px; font-weight: 600;">基于${report.strategy === 'stable' ? '稳健' : '激进'}策略的核心建议：</p>
+                    <div style="background: rgba(59, 130, 246, 0.08); border-radius: 12px; padding: 24px; margin-bottom: 24px; border-left: 4px solid #3b82f6;">
+                        <h4 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; color: #1d1d1f;">执行重点：</h4>
+                        <div style="font-size: 0.95rem; line-height: 1.6;">
+                            ${detailedAnalysis ? detailedAnalysis.slice(0, 500) + (detailedAnalysis.length > 500 ? '...' : '') : '详细分析报告生成中...'}
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(152, 251, 152, 0.1); border-radius: 12px; padding: 24px; margin-bottom: 24px; border-left: 4px solid #98FB98;">
+                        <h4 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; color: #1d1d1f;">关键指标预期：</h4>
+                        <ul style="list-style: none; padding: 0; margin: 0;">
+                            <li style="margin-bottom: 12px; padding-left: 20px; position: relative;"><span style="position: absolute; left: 0; color: #98FB98;">✓</span> 转化率提升：${selectedStrategy?.conversion_improvement || keyInsights.conversion_improvement || '等待AI分析完成'}</li>
+                            <li style="margin-bottom: 12px; padding-left: 20px; position: relative;"><span style="position: absolute; left: 0; color: #98FB98;">✓</span> 预期ROI：${selectedStrategy?.expected_roi || keyInsights.teaser_analysis?.expected_roi || '等待AI分析完成'}</li>
+                            <li style="margin-bottom: 12px; padding-left: 20px; position: relative;"><span style="position: absolute; left: 0; color: #98FB98;">✓</span> 实施周期：${selectedStrategy?.timeline || '等待AI分析完成'}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 40px; padding: 20px; background: rgba(59, 130, 246, 0.05); border-radius: 12px;">
+                <p style="color: #4682B4; font-weight: 500;">
+                    数据周期: ${funnelData.time_period || '未指定'} | 分析策略: ${report.strategy === 'stable' ? '稳健优化' : '激进增长'} | 生成时间: ${new Date().toLocaleString('zh-CN')}
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>`
+}
+
+const generateFullReportHTML = (report: any) => {
+  const content = report.content || {}
+  console.log('📊 生成完整报告HTML，原始数据:', JSON.stringify(content, null, 2))
+  
+  // 根据后端实际数据结构获取数据
+  const funnelData = content.funnelData || {}
+  const companyInfo = content.companyInfo || {}
+  const keyInsights = content.keyInsights || {}
+  const selectedStrategy = content.selectedStrategy || {}
+  const detailedAnalysis = content.detailedAnalysis || ''
+  const recommendations = content.recommendations || []
+  const nextSteps = content.nextSteps || []
+  
+  // 添加更多调试信息
+  console.log('🔍 关键数据字段详细检查:')
+  console.log('  报告策略:', report.strategy)
+  console.log('  funnelData keys:', Object.keys(funnelData))
+  console.log('  companyInfo keys:', Object.keys(companyInfo))  
+  console.log('  keyInsights keys:', Object.keys(keyInsights))
+  console.log('  selectedStrategy keys:', Object.keys(selectedStrategy))
+  console.log('  detailedAnalysis type:', typeof detailedAnalysis, 'length:', detailedAnalysis.length)
+  console.log('  recommendations length:', recommendations.length)
+  console.log('  nextSteps length:', nextSteps.length)
+  
+  // 尝试从多个可能的位置获取漏斗名称
+  const headerTitle = funnelData.funnel_name || funnelData.name || report.funnelName || '客户漏斗分析报告'
+  const headerSubtitle = `数据驱动的业务增长洞察与优化建议 - ${new Date(report.createdAt).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}`
+  
+  const healthScore = calculateHealthScore(content)
+  const healthScoreDeg = Math.round((healthScore / 100) * 360)
+  
+  // 调试健康评分
+  console.log('🏥 健康评分计算:', healthScore, '度数:', healthScoreDeg)
+  
+  // 获取漏斗数据用于计算转化率
+  const stages = funnelData.stages || funnelData.steps || []
+  const stageMetrics = calculateStageMetrics(stages)
+  
+  // 获取关键瓶颈信息
+  const bottleneckStage = keyInsights.key_insight?.bottleneck_stage || keyInsights.bottleneck_stage || keyInsights.main_bottleneck || '待分析阶段'
+  const bottleneckRate = getBottleneckConversionRate(stages)
+  
+  // 获取优势环节信息  
+  const advantageStage = getBestPerformingStage(stages)
+  const advantageRate = getHighestConversionRate(stages)
+  
+  return `
+    <!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${headerTitle} - AI分析报告</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+                background: #f5f5f7;
+                color: #1d1d1f;
+                line-height: 1.47059;
+                padding: 40px 20px;
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+            }
+
+            .container {
+                max-width: 1400px;
+                margin: 0 auto;
+                background: rgba(255, 255, 255, 0.95);
+                border-radius: 18px;
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02), 0 10px 20px rgba(0, 0, 0, 0.04), 0 20px 40px rgba(0, 0, 0, 0.06);
+                overflow: hidden;
+                border: 1px solid rgba(255, 255, 255, 0.18);
+            }
+
+            .header {
+                background: rgba(255, 255, 255, 0.8);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                color: #1d1d1f;
+                padding: 60px 40px;
+                text-align: center;
+                position: relative;
+                border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            }
+            
+            .header::after {
+                content: '';
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 1px;
+                background: linear-gradient(90deg, transparent, rgba(0,0,0,0.1), transparent);
+            }
+
+            .header h1 {
+                font-size: 2.5rem;
+                font-weight: 700;
+                margin-bottom: 12px;
+                letter-spacing: -0.025em;
+                color: #1d1d1f;
+            }
+
+            .header p {
+                font-size: 1.125rem;
+                color: #6e6e73;
+                font-weight: 400;
+                letter-spacing: -0.01em;
+            }
+
+            .section {
+                padding: 60px 50px;
+                position: relative;
+            }
+            
+            .section::after {
+                content: '';
+                position: absolute;
+                bottom: 0;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 90%;
+                height: 1px;
+                background: linear-gradient(90deg, transparent, rgba(0,0,0,0.08) 20%, rgba(0,0,0,0.08) 80%, transparent);
+            }
+            
+            .section:last-child::after {
+                display: none;
+            }
+
+            .section-title {
+                font-size: 1.75rem;
+                font-weight: 600;
+                margin-bottom: 40px;
+                position: relative;
+                padding-left: 20px;
+                letter-spacing: -0.015em;
+                color: #1d1d1f;
+            }
+
+            .section-title::before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 3px;
+                height: 100%;
+                background: #3b82f6;
+                border-radius: 2px;
+            }
+
+            .summary-cards {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 30px;
+                margin-bottom: 40px;
+            }
+
+            .summary-card {
+                padding: 32px;
+                border-radius: 20px;
+                position: relative;
+                background: rgba(255, 255, 255, 0.7);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                border: 1px solid rgba(255, 255, 255, 0.25);
+                transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02), 0 10px 20px rgba(0, 0, 0, 0.04);
+            }
+            
+            .summary-card:hover {
+                transform: translateY(-8px);
+                box-shadow: 0 10px 15px rgba(0, 0, 0, 0.03), 0 20px 40px rgba(0, 0, 0, 0.08), 0 40px 80px rgba(0, 0, 0, 0.12);
+                background: rgba(255, 255, 255, 0.85);
+            }
+
+            .summary-card.health {
+                background: #ffffff;
+                border-left: 3px solid #3b82f6;
+            }
+
+            .summary-card.bottleneck {
+                background: #ffffff;
+                border-left: 3px solid #f59e0b;
+            }
+
+            .summary-card.growth {
+                background: #ffffff;
+                border-left: 3px solid #98FB98;
+            }
+
+            .card-header {
+                display: flex;
+                align-items: center;
+                margin-bottom: 25px;
+            }
+
+            .card-icon {
+                width: 52px;
+                height: 52px;
+                border-radius: 14px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-right: 15px;
+                font-size: 24px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 10px 20px rgba(0, 0, 0, 0.04);
+            }
+
+            .card-icon.health {
+                background: #3b82f6;
+                color: white;
+            }
+
+            .card-icon.bottleneck {
+                background: #f59e0b;
+                color: white;
+            }
+
+            .card-icon.growth {
+                background: #98FB98;
+                color: white;
+            }
+
+            .card-title {
+                font-size: 1.25rem;
+                font-weight: 600;
+                color: #1d1d1f;
+                letter-spacing: -0.01em;
+            }
+
+            .progress-circle {
+                width: 130px;
+                height: 130px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 24px auto;
+                position: relative;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02), 0 10px 20px rgba(0, 0, 0, 0.04);
+                background: conic-gradient(#3b82f6 0deg ${healthScoreDeg}deg, #f3f4f6 ${healthScoreDeg}deg 360deg);
+            }
+
+            .progress-inner {
+                width: 100px;
+                height: 100px;
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border-radius: 50%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+            }
+
+            .progress-value {
+                font-size: 1.4rem;
+                font-weight: 700;
+                color: #1d1d1f;
+                letter-spacing: -0.01em;
+            }
+
+            .progress-label {
+                font-size: 0.875rem;
+                color: #6e6e73;
+                font-weight: 400;
+            }
+
+            .card-content {
+                margin-top: 20px;
+            }
+
+            .card-content li {
+                margin: 10px 0;
+                list-style: none;
+                position: relative;
+                padding-left: 20px;
+            }
+
+            .card-content li::before {
+                content: '•';
+                position: absolute;
+                left: 0;
+                color: #9ca3af;
+                font-weight: normal;
+            }
+
+            .action-button {
+                background: linear-gradient(135deg, #3b82f6, #2563eb);
+                color: white;
+                border: none;
+                padding: 14px 28px;
+                border-radius: 12px;
+                font-weight: 500;
+                cursor: pointer;
+                margin-top: 20px;
+                transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 10px 20px rgba(59, 130, 246, 0.15);
+                font-size: 14px;
+            }
+            
+            .action-button:hover {
+                transform: translateY(-2px) scale(1.02);
+                box-shadow: 0 6px 8px rgba(0, 0, 0, 0.1), 0 15px 30px rgba(59, 130, 246, 0.25);
+            }
+
+            .action-button.growth {
+                background: linear-gradient(135deg, #98FB98, #90EE90);
+            }
+            
+            .action-button.growth:hover {
+                transform: translateY(-2px) scale(1.02);
+                box-shadow: 0 6px 8px rgba(0, 0, 0, 0.1), 0 15px 30px rgba(152, 251, 152, 0.25);
+            }
+
+            .funnel-container {
+                text-align: center;
+                margin-bottom: 50px;
+            }
+
+            .funnel-title {
+                font-size: 1.5rem;
+                font-weight: 600;
+                color: #1d1d1f;
+                margin-bottom: 36px;
+                letter-spacing: -0.012em;
+            }
+
+            .funnel-steps {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                max-width: 1200px;
+                margin: 0 auto 40px;
+                flex-wrap: nowrap;
+                gap: 8px;
+                overflow-x: auto;
+                padding: 10px 0;
+            }
+
+            .funnel-step {
+                background: linear-gradient(135deg, #6366f1, #4f46e5);
+                color: white;
+                padding: 20px 16px;
+                border-radius: 16px;
+                text-align: center;
+                position: relative;
+                min-width: 120px;
+                max-width: 200px;
+                flex: 1;
+                height: 90px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 10px 20px rgba(99, 102, 241, 0.15);
+                transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            
+            .funnel-step:hover {
+                transform: translateY(-6px) scale(1.02);
+                box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1), 0 20px 40px rgba(99, 102, 241, 0.25);
+            }
+
+            .step-label {
+                font-size: 1rem;
+                font-weight: 600;
+                margin-bottom: 5px;
+            }
+
+            .step-value {
+                font-size: 1.5rem;
+                font-weight: 700;
+            }
+
+            .funnel-arrow {
+                font-size: 1.2rem;
+                color: #6b7280;
+                margin: 0 5px;
+                flex-shrink: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-width: 20px;
+            }
+
+            .analysis-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 40px;
+                margin-top: 50px;
+            }
+
+            .analysis-card {
+                background: rgba(255, 255, 255, 0.7);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                padding: 32px;
+                border-radius: 18px;
+                border-left: 4px solid #10b981;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02), 0 10px 20px rgba(0, 0, 0, 0.04);
+                transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                border: 1px solid rgba(255, 255, 255, 0.25);
+            }
+            
+            .analysis-card:hover {
+                transform: translateY(-6px);
+                box-shadow: 0 10px 15px rgba(0, 0, 0, 0.03), 0 20px 40px rgba(0, 0, 0, 0.08);
+                background: rgba(255, 255, 255, 0.85);
+            }
+
+            .analysis-card.bottleneck {
+                border-left-color: #f59e0b;
+                background: #ffffff;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            }
+            
+            .analysis-card.bottleneck:hover {
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            }
+
+            .analysis-card h3 {
+                font-size: 1.3rem;
+                font-weight: 600;
+                margin-bottom: 20px;
+                display: flex;
+                align-items: center;
+            }
+
+            .analysis-card h3::before {
+                content: '👍';
+                margin-right: 10px;
+            }
+
+            .analysis-card.bottleneck h3::before {
+                content: '⚠️';
+            }
+
+            .highlight-text {
+                font-size: 1.1rem;
+                font-weight: 600;
+                margin-bottom: 15px;
+            }
+
+            .highlight-text .percentage {
+                color: #98FB98;
+                font-weight: 700;
+            }
+
+            .highlight-text.bottleneck .percentage {
+                color: #FFB6C1;
+            }
+
+            .industry-grid {
+                display: grid;
+                grid-template-columns: 0.7fr 1.3fr;
+                gap: 40px;
+                margin-bottom: 40px;
+                align-items: start;
+            }
+
+            .industry-card {
+                background: rgba(255, 255, 255, 0.7);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                padding: 32px;
+                border-radius: 18px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02), 0 10px 20px rgba(0, 0, 0, 0.04);
+                transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                border: 1px solid rgba(255, 255, 255, 0.25);
+            }
+            
+            .industry-card:hover {
+                transform: translateY(-6px);
+                box-shadow: 0 10px 15px rgba(0, 0, 0, 0.03), 0 20px 40px rgba(0, 0, 0, 0.08);
+                background: rgba(255, 255, 255, 0.85);
+            }
+
+            .industry-card h3 {
+                font-size: 1.3rem;
+                font-weight: 600;
+                margin-bottom: 20px;
+                display: flex;
+                align-items: center;
+            }
+
+            .industry-card h3::before {
+                content: '🎯';
+                margin-right: 10px;
+            }
+
+            .industry-card:last-child h3::before {
+                content: '💡';
+            }
+
+            .industry-list {
+                list-style: none;
+            }
+
+            .industry-list li {
+                margin: 15px 0;
+                padding-left: 20px;
+                position: relative;
+            }
+
+            .industry-list li::before {
+                content: '•';
+                position: absolute;
+                left: 0;
+                color: #9ca3af;
+                font-weight: normal;
+            }
+
+            .insights-box {
+                background: rgba(255, 255, 255, 0.7);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                border: 1px solid rgba(255, 255, 255, 0.25);
+                border-radius: 16px;
+                padding: 28px;
+                margin-top: 30px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02), 0 10px 20px rgba(0, 0, 0, 0.04);
+                border-left: 4px solid #6366f1;
+            }
+
+            .insights-box p {
+                color: #4682B4;
+                line-height: 1.7;
+            }
+
+            @media (max-width: 768px) {
+                .container {
+                    margin: 16px;
+                    border-radius: 12px;
+                }
+                
+                .section {
+                    padding: 32px 20px;
+                }
+                
+                .summary-cards {
+                    grid-template-columns: 1fr;
+                }
+                
+                .funnel-steps {
+                    gap: 4px;
+                    max-width: 100%;
+                    overflow-x: auto;
+                    padding: 10px 5px;
+                }
+                
+                .funnel-step {
+                    min-width: 100px;
+                    max-width: 150px;
+                    padding: 16px 12px;
+                    font-size: 0.9rem;
+                }
+                
+                .funnel-arrow {
+                    margin: 0 2px;
+                    font-size: 1rem;
+                }
+                
+                .analysis-grid,
+                .industry-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <!-- Header -->
+            <div class="header">
+                <h1>${headerTitle}</h1>
+                <p>${headerSubtitle}</p>
+            </div>
+
+            <!-- Section 1: Executive Summary -->
+            <div class="section" style="background: #ffffff; margin: 0; border-radius: 0;">
+                <h2 class="section-title">📊 执行摘要</h2>
+                
+                <div class="summary-cards">
+                    <div class="summary-card health">
+                        <div class="card-header">
+                            <div class="card-icon health">📊</div>
+                            <h3 class="card-title">健康度分析</h3>
+                        </div>
+                        
+                        <div class="progress-circle health">
+                            <div class="progress-inner">
+                                <div class="progress-value">${healthScore}%</div>
+                                <div class="progress-label">健康度</div>
+                            </div>
+                        </div>
+                        
+                        <ul class="card-content">
+                            <li>整体转化表现：${healthScore > 70 ? '良好' : '需要改进'}（${healthScore}分）</li>
+                            <li>数据完整性：${(funnelData.stages?.length || funnelData.steps?.length) > 0 ? `完整（${funnelData.stages?.length || funnelData.steps?.length}个阶段）` : '数据不足'}</li>
+                            <li>分析深度：${detailedAnalysis ? `详细（${Math.floor(detailedAnalysis.length / 100)}k字）` : '基础分析'}</li>
+                            <li>策略类型：${report.strategy === 'stable' ? '稳健型' : '激进型'}优化方案</li>
+                        </ul>
+                    </div>
+
+                    <div class="summary-card bottleneck">
+                        <div class="card-header">
+                            <div class="card-icon bottleneck">🔍</div>
+                            <h3 class="card-title">瓶颈分析</h3>
+                        </div>
+                        
+                        <div class="card-content">
+                            <p style="margin-bottom: 15px; font-weight: 600;">关键瓶颈：${keyInsights.key_insight?.bottleneck_stage || keyInsights.bottleneck_stage || keyInsights.main_bottleneck || '等待AI分析完成'}</p>
+                            <ul>
+                                <li><strong>核心问题：</strong>${keyInsights.key_insight?.conversion_issue || keyInsights.teaser_analysis?.core_problem || keyInsights.core_issue || keyInsights.main_issue || '等待AI分析完成'}</li>
+                                <li><strong>改进建议：</strong>${keyInsights.key_insight?.quick_suggestion || keyInsights.teaser_analysis?.quick_advice || keyInsights.primary_suggestion || keyInsights.quick_fix || '等待AI分析完成'}</li>
+                                <li><strong>影响评估：</strong>${keyInsights.key_insight?.potential_impact || keyInsights.impact_assessment || keyInsights.expected_improvement || '等待AI分析完成'}</li>
+                            </ul>
+                            <button class="action-button">立即优化</button>
+                        </div>
+                    </div>
+
+                    <div class="summary-card growth">
+                        <div class="card-header">
+                            <div class="card-icon growth">📈</div>
+                            <h3 class="card-title">增长机会</h3>
+                        </div>
+                        
+                        <div class="card-content">
+                            <p style="margin-bottom: 15px; font-weight: 600;">增长预期：${keyInsights.key_insight?.potential_impact || keyInsights.teaser_analysis?.expected_roi || keyInsights.growth_potential || keyInsights.roi_prediction || '等待AI分析完成'}</p>
+                            <ul>
+                                <li><strong>策略特点：</strong>${selectedStrategy?.features || selectedStrategy?.tag || selectedStrategy?.description || '等待AI分析完成'}</li>
+                                <li><strong>核心行动：</strong>${selectedStrategy?.core_actions || selectedStrategy?.actions || selectedStrategy?.steps || '等待AI分析完成'}</li>
+                                <li><strong>投资水平：</strong>${selectedStrategy?.investment || selectedStrategy?.cost || selectedStrategy?.budget || '等待AI分析完成'}</li>
+                                <li><strong>预期收益：</strong>${selectedStrategy?.expected_roi || keyInsights.teaser_analysis?.expected_roi || keyInsights.roi_estimate || '等待AI分析完成'}</li>
+                            </ul>
+                            <button class="action-button growth">开始执行</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Funnel Analysis -->
+            <div class="section" style="background: #ffffff; margin: 0; border-radius: 0;">
+                <h2 class="section-title">🔍 核心分析</h2>
+                
+                <div class="funnel-container">
+                    <h3 class="funnel-title">${funnelData.funnel_name || '漏斗分析'}</h3>
+                    
+                    <div class="funnel-steps">
+                        ${generateFunnelStepsHTML(funnelData.stages || funnelData.steps || [])}
+                    </div>
+                </div>
+
+                <div class="analysis-grid">
+                    <div class="analysis-card">
+                        <h3>优势分析</h3>
+                        <p class="highlight-text">${keyInsights.key_insight?.summary || '等待AI分析完成'}</p>
+                        <p>${detailedAnalysis ? detailedAnalysis.slice(0, 200) + '...' : '等待AI分析完成'}</p>
+                        <div style="margin-top: 15px;">
+                            <h4 style="font-size: 1.1rem; margin-bottom: 10px;">改进建议：</h4>
+                            <ul style="list-style: disc; padding-left: 20px;">
+                                ${recommendations.slice(0, 3).map(rec => `<li style="margin: 5px 0;">${rec}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="analysis-card bottleneck">
+                        <h3>瓶颈分析</h3>
+                        <p class="highlight-text bottleneck">${keyInsights.teaser_analysis?.core_problem || '等待AI分析完成'}</p>
+                        <p>${keyInsights.teaser_analysis?.quick_advice || '等待AI分析完成'}</p>
+                        <div style="margin-top: 15px;">
+                            <h4 style="font-size: 1.1rem; margin-bottom: 10px;">下一步行动：</h4>
+                            <ul style="list-style: disc; padding-left: 20px;">
+                                ${nextSteps.slice(0, 3).map(step => `<li style="margin: 5px 0;">${step}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Industry Analysis -->
+            <div class="section" style="background: #ffffff; margin: 0; border-radius: 0;">
+                <h2 class="section-title">📈 行业分析</h2>
+                
+                <div class="industry-grid">
+                    <div class="industry-card" style="background: rgba(255, 255, 255, 0.85); padding: 36px;">
+                        <h3>公司信息</h3>
+                        <div style="margin-bottom: 24px;">
+                            <p style="margin-bottom: 12px; font-weight: 600; font-size: 1.1rem;">${companyInfo.company_name || companyInfo.name || '未知公司'}</p>
+                            <p style="margin-bottom: 8px; color: #666;"><strong>行业：</strong>${companyInfo.industry || companyInfo.sector || '通用'}</p>
+                            <p style="margin-bottom: 8px; color: #666;"><strong>地区：</strong>${companyInfo.city || companyInfo.location || companyInfo.region || '未知'}</p>
+                            <p style="margin-bottom: 8px; color: #666;"><strong>团队规模：</strong>${companyInfo.team_size || companyInfo.employees || '1-10'}</p>
+                            <p style="margin-bottom: 8px; color: #666;"><strong>销售模式：</strong>${companyInfo.sales_model || companyInfo.business_model || 'B2B'}</p>
+                        </div>
+                        
+                        <div class="insights-box">
+                            <p><strong>公司描述：</strong>${companyInfo.company_description || '暂无描述'}</p>
+                        </div>
+                    </div>
+
+                    <div class="industry-card">
+                        <h3>策略详情</h3>
+                        <div style="margin-bottom: 20px;">
+                            <p style="margin-bottom: 12px; font-weight: 600; font-size: 1.1rem;">${selectedStrategy.title || '策略分析'}</p>
+                            <p style="margin-bottom: 8px;"><strong>标签：</strong>${selectedStrategy.tag || '待定'}</p>
+                            <p style="margin-bottom: 8px;"><strong>特点：</strong>${selectedStrategy.features || '等待AI分析完成'}</p>
+                            <p style="margin-bottom: 8px;"><strong>核心行动：</strong>${selectedStrategy.core_actions || '等待AI分析完成'}</p>
+                            <p style="margin-bottom: 8px;"><strong>投资要求：</strong>${selectedStrategy.investment || '等待AI分析完成'}</p>
+                        </div>
+                        
+                        <div class="insights-box">
+                            <p><strong>ROI预期：</strong>${keyInsights.teaser_analysis?.expected_roi || '等待AI分析完成'}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 4: Detailed Analysis Report -->
+            ${false ? `
+            <div class="section" style="background: #ffffff; margin: 0; border-radius: 0;">
+                <h2 class="section-title">📋 详细分析报告</h2>
+                
+                <div style="background: rgba(255, 255, 255, 0.9); padding: 30px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 30px;">
+                    <div style="white-space: pre-wrap; line-height: 1.7; color: #333; font-size: 15px;">
+                        ${detailedAnalysis.replace(/\n/g, '<br>')}
+                    </div>
+                </div>
+
+                ${recommendations.length > 0 ? `
+                <div style="background: rgba(255, 255, 255, 0.9); padding: 30px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 30px; border-left: 4px solid #10b981;">
+                    <h3 style="margin-bottom: 20px; color: #1d1d1f; font-size: 1.3rem;">💡 改进建议</h3>
+                    <ul style="list-style: none; padding: 0;">
+                        ${recommendations.map((rec, index) => `
+                            <li style="margin-bottom: 15px; padding: 15px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border-left: 3px solid #10b981;">
+                                <strong style="color: #065f46;">${index + 1}.</strong> ${rec}
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+
+                ${nextSteps.length > 0 ? `
+                <div style="background: rgba(255, 255, 255, 0.9); padding: 30px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #3b82f6;">
+                    <h3 style="margin-bottom: 20px; color: #1d1d1f; font-size: 1.3rem;">🎯 下一步行动计划</h3>
+                    <ul style="list-style: none; padding: 0;">
+                        ${nextSteps.map((step, index) => `
+                            <li style="margin-bottom: 15px; padding: 15px; background: rgba(59, 130, 246, 0.1); border-radius: 8px; border-left: 3px solid #3b82f6;">
+                                <strong style="color: #1e40af;">步骤 ${index + 1}:</strong> ${step}
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+            </div>
+            ` : ''}
+
+            <!-- Footer -->
+            <div style="background: rgba(255, 255, 255, 0.95); padding: 30px; text-align: center; border-top: 1px solid rgba(0,0,0,0.1);">
+                <p style="color: #6b7280; font-size: 14px; margin: 0;">
+                    本报告由 Pathfinder AI 分析系统生成 | 生成时间: ${new Date().toLocaleString('zh-CN')}
+                </p>
+                <p style="color: #6b7280; font-size: 12px; margin-top: 5px;">
+                    数据周期: ${funnelData.time_period || '未指定'} | 分析策略: ${report.strategy === 'stable' ? '稳健优化' : '激进增长'}
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+  `
+}
+
+const generateFunnelStepsHTML = (stages: any[]) => {
+  if (!stages || stages.length === 0) {
+    return '<div class="funnel-step"><div class="step-label">暂无数据</div></div>'
+  }
+
+  return stages.map((stage, index) => {
+    const arrow = index < stages.length - 1 ? '<div class="funnel-arrow">→</div>' : ''
+    
+    // 尝试不同的字段名来获取数值
+    const currentValue = stage.current_value || stage.value || stage.count || stage.amount || 0
+    const nextValue = stages[index + 1] ? (stages[index + 1].current_value || stages[index + 1].value || stages[index + 1].count || stages[index + 1].amount) : 0
+    
+    const conversionRate = index < stages.length - 1 && nextValue && currentValue > 0 ? 
+      Math.round((nextValue / currentValue) * 100) : 100
+    
+    // 尝试不同的字段名来获取阶段名称
+    const stageName = stage.stage_name || stage.name || stage.label || stage.title || `阶段 ${index + 1}`
+    
+    return `
+      <div class="funnel-step" ${index === 0 ? 'style="background: linear-gradient(135deg, #10b981, #059669);"' : ''}>
+        <div class="step-label">${stageName}</div>
+        <div class="step-value">${currentValue?.toLocaleString?.() || currentValue}</div>
+        ${index < stages.length - 1 ? `<div style="font-size: 0.8rem; opacity: 0.9; margin-top: 4px;">${conversionRate}%</div>` : ''}
+      </div>
+      ${arrow}
+    `
+  }).join('')
+}
+
+// 辅助函数：计算阶段指标
+const calculateStageMetrics = (stages: any[]) => {
+  if (!stages || stages.length === 0) return []
+  
+  return stages.map((stage, index) => {
+    const currentValue = stage.current_value || stage.value || stage.count || stage.amount || 0
+    const nextValue = stages[index + 1] ? (stages[index + 1].current_value || stages[index + 1].value || stages[index + 1].count || stages[index + 1].amount) : 0
+    const conversionRate = index < stages.length - 1 && nextValue && currentValue > 0 ? 
+      ((nextValue / currentValue) * 100) : 100
+    
+    return {
+      ...stage,
+      conversionRate: conversionRate,
+      stageName: stage.stage_name || stage.name || stage.label || stage.title || `阶段 ${index + 1}`
+    }
+  })
+}
+
+// 获取瓶颈转化率
+const getBottleneckConversionRate = (stages: any[]) => {
+  const metrics = calculateStageMetrics(stages)
+  if (metrics.length < 2) return 0
+  
+  let minRate = 100
+  for (let i = 0; i < metrics.length - 1; i++) {
+    if (metrics[i].conversionRate < minRate) {
+      minRate = metrics[i].conversionRate
+    }
+  }
+  return minRate.toFixed(2)
+}
+
+// 获取最佳表现阶段
+const getBestPerformingStage = (stages: any[]) => {
+  const metrics = calculateStageMetrics(stages)
+  if (metrics.length < 2) return '暂无数据'
+  
+  let maxRate = 0
+  let bestStage = ''
+  for (let i = 0; i < metrics.length - 1; i++) {
+    if (metrics[i].conversionRate > maxRate) {
+      maxRate = metrics[i].conversionRate
+      bestStage = metrics[i].stageName
+    }
+  }
+  return bestStage || '暂无数据'
+}
+
+// 获取最高转化率
+const getHighestConversionRate = (stages: any[]) => {
+  const metrics = calculateStageMetrics(stages)
+  if (metrics.length < 2) return 0
+  
+  let maxRate = 0
+  for (let i = 0; i < metrics.length - 1; i++) {
+    if (metrics[i].conversionRate > maxRate) {
+      maxRate = metrics[i].conversionRate
+    }
+  }
+  return maxRate.toFixed(2)
+}
+
+const calculateHealthScore = (content: any) => {
+  // 如果没有任何分析内容，返回0分而不是误导性的基础分
+  if (!content || Object.keys(content).length === 0) {
+    console.log('❌ 没有分析内容，健康评分为0')
+    return 0
+  }
+  
+  let score = 0 // 从0开始，只有真实数据才能获得分数
+  console.log('📊 健康评分计算开始，基础分:', score)
+  
+  // 检查关键洞察 - 支持多种数据结构
+  if (content.keyInsights) {
+    score += 20
+    console.log('✅ 找到关键洞察，+20分，当前:', score)
+    
+    // 如果有具体的瓶颈分析，额外加分
+    const hasBottleneck = content.keyInsights.key_insight?.bottleneck_stage || 
+                         content.keyInsights.bottleneck_stage ||
+                         content.keyInsights.main_bottleneck
+    
+    if (hasBottleneck && hasBottleneck !== '待分析' && hasBottleneck !== '等待AI分析完成') {
+      score += 10
+      console.log('✅ 找到具体瓶颈分析，+10分，当前:', score)
+    }
+    
+    // 检查是否有具体的改进建议
+    const hasSuggestion = content.keyInsights.key_insight?.quick_suggestion ||
+                         content.keyInsights.teaser_analysis?.quick_advice ||
+                         content.keyInsights.primary_suggestion
+    
+    if (hasSuggestion && hasSuggestion !== '等待AI分析完成') {
+      score += 5
+      console.log('✅ 找到改进建议，+5分，当前:', score)
+    }
+  }
+  
+  // 检查漏斗数据完整性 - 支持多种字段名
+  const stages = content.funnelData?.stages || content.funnelData?.steps || []
+  if (stages.length > 0) {
+    score += 15
+    console.log('✅ 找到漏斗阶段数据，+15分，当前:', score)
+    
+    // 如果阶段数据完整，额外加分
+    const hasCompleteData = stages.every((stage: any) => {
+      const value = stage.current_value || stage.value || stage.count || stage.amount
+      return value !== undefined && value > 0
+    })
+    if (hasCompleteData) {
+      score += 10
+      console.log('✅ 阶段数据完整，+10分，当前:', score)
+    }
+  }
+  
+  // 检查详细分析
+  if (content.detailedAnalysis && content.detailedAnalysis.length > 100) {
+    score += 10
+    console.log('✅ 找到详细分析，+10分，当前:', score)
+  }
+  
+  // 检查策略选择
+  const hasStrategy = content.selectedStrategy && 
+                     (content.selectedStrategy.title || content.selectedStrategy.name)
+  if (hasStrategy) {
+    score += 5
+    console.log('✅ 找到选择策略，+5分，当前:', score)
+  }
+  
+  // 检查公司信息完整性
+  if (content.companyInfo && (content.companyInfo.company_name || content.companyInfo.name)) {
+    score += 5
+    console.log('✅ 找到公司信息，+5分，当前:', score)
+  }
+  
+  const finalScore = Math.min(Math.max(score, 30), 100) // 确保在30-100范围内
+  console.log('🏆 最终健康评分:', finalScore)
+  return finalScore
+}
+
+const getStatusLabel = (status: string): string => {
+  const labels = {
+    current: '进行中',
+    completed: '已完成',
+    archived: '已归档'
+  }
+  return labels[status as keyof typeof labels] || status
+}
+
+const getStatusBackground = (status: string): string => {
+  const backgrounds = {
+    current: '#dcfce7',
+    completed: '#e0e7ff',
+    archived: '#e0e7ff'  // Use same as completed for archived status
+  }
+  return backgrounds[status as keyof typeof backgrounds] || '#f3f4f6'
+}
+
+const getStatusColor = (status: string): string => {
+  const colors = {
+    current: '#166534',
+    completed: '#3730a3',
+    archived: '#3730a3'  // Use same as completed for archived status
+  }
+  return colors[status as keyof typeof colors] || '#6b7280'
+}
+
+const getReportIcon = (funnelName: string): string => {
+  const icons = {
+    '销售漏斗': 'fas fa-filter',
+    '试用漏斗': 'fas fa-filter',
+    '营销漏斗': 'fas fa-filter',
+    '客户分析': 'fas fa-users'
+  }
+  return icons[funnelName as keyof typeof icons] || 'fas fa-filter'
+}
+
+// Sidebar management is handled by the main Sidebar component
+// Listen for sidebar state changes from the main sidebar
+const initSidebar = () => {
+  // Listen for global sidebar toggle events
+  window.addEventListener('sidebar-toggle', (event: any) => {
+    sidebarCollapsed.value = event.detail.isCollapsed
+  })
+  
+  // Initialize from localStorage
+  const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true'
+  sidebarCollapsed.value = isCollapsed
 }
 
 // Lifecycle
 onMounted(async () => {
-  // Check if we have route parameters for specific dataset
-  const datasetId = route.params.id as string
-  
-  if (datasetId) {
-    // TODO: Load specific dataset analysis
-    await performAnalysis()
-  } else {
-    // Load sample data for demonstration
-    await loadSampleData()
+  initSidebar()
+  await loadReportsData()
+})
+
+// 当组件被激活时（从其他路由返回）重新加载数据
+onActivated(async () => {
+  console.log('🔄 报告中心页面被激活，重新加载数据...')
+  await loadReportsData()
+})
+
+// 监听路由变化，确保每次访问都能获得最新数据
+watch(() => route.path, async (newPath) => {
+  if (newPath === '/analysis/enhanced') {
+    console.log('🔄 路由变化到报告中心，重新加载数据...')
+    await loadReportsData()
   }
 })
 </script>
 
 <style scoped>
-/* Smooth animations */
-.transition-all {
-  transition: all 0.3s ease-in-out;
-}
-
-/* Custom scrollbar */
-.overflow-y-auto::-webkit-scrollbar {
-  width: 6px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
 /* Loading spinner */
 @keyframes spin {
   to {
@@ -782,37 +2491,68 @@ onMounted(async () => {
   animation: spin 1s linear infinite;
 }
 
-/* Responsive grid improvements */
+/* Hover effects */
+.report-item:hover {
+  border-color: #0052d9 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 82, 217, 0.1);
+}
+
+.action-item:hover {
+  border-color: #0052d9 !important;
+  background: #f8fafc !important;
+}
+
+.filter-tab:hover {
+  border-color: #0052d9 !important;
+  color: #0052d9 !important;
+}
+
+/* Removed toggle-sidebar styles - handled by main Sidebar component */
+
+/* Responsive design */
 @media (max-width: 1024px) {
-  .grid.lg\\:grid-cols-4 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .report-sections {
+    grid-template-columns: 1fr !important;
   }
   
-  .grid.lg\\:grid-cols-2 {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
   }
+  
+  /* Toggle sidebar styles removed - handled by main Sidebar component */
 }
 
 @media (max-width: 640px) {
-  .grid.lg\\:grid-cols-4,
-  .grid.md\\:grid-cols-3 {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
+  .main-content {
+    padding: 12px !important;
+    margin-left: 0 !important;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+  
+  .header-card {
+    padding: 16px !important;
+    margin-bottom: 16px !important;
+  }
+  
+  .reports-list,
+  .quick-actions {
+    padding: 16px !important;
+  }
+  
+  .report-sections {
+    gap: 16px !important;
   }
 }
 
-/* Focus styles for accessibility */
-button:focus {
-  outline: 2px solid transparent;
-  outline-offset: 2px;
-}
-
-/* Tab hover effects */
-nav button:hover {
-  transition: all 0.2s ease-in-out;
-}
-
-/* Card hover effects */
-.shadow:hover {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+/* Font Awesome icons fallback */
+.fas:before,
+.fa:before {
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
 }
 </style>

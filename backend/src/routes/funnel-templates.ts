@@ -256,6 +256,53 @@ router.delete(
   }
 );
 
+// 获取行业默认模板列表
+router.get(
+  '/industry-templates',
+  async (req, res, next) => {
+    try {
+      const templates = await funnelTemplateService.getIndustryTemplates();
+      
+      res.json({
+        success: true,
+        data: templates
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// 根据行业获取特定默认模板
+router.get(
+  '/industry/:industry',
+  [
+    param('industry')
+      .isString()
+      .withMessage('行业代码格式无效')
+  ],
+  validateRequest,
+  async (req, res, next) => {
+    try {
+      const template = await funnelTemplateService.getIndustryTemplate(req.params.industry);
+      
+      if (!template) {
+        return res.status(404).json({
+          success: false,
+          message: '未找到该行业的默认模板'
+        });
+      }
+
+      res.json({
+        success: true,
+        data: template
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // 获取或创建默认模板
 router.post(
   '/default',

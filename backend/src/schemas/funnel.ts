@@ -24,6 +24,14 @@ export const createFunnelSchema = Joi.object({
     .optional()
     .messages({
       'object.base': '画布数据必须是对象格式'
+    }),
+
+  dataPeriod: Joi.string()
+    .valid('DAILY', 'WEEKLY', 'MONTHLY')
+    .default('DAILY')
+    .optional()
+    .messages({
+      'any.only': '数据周期只能是 DAILY, WEEKLY, MONTHLY 之一'
     })
 });
 
@@ -50,6 +58,13 @@ export const updateFunnelSchema = Joi.object({
     .optional()
     .messages({
       'object.base': '画布数据必须是对象格式'
+    }),
+
+  dataPeriod: Joi.string()
+    .valid('DAILY', 'WEEKLY', 'MONTHLY')
+    .optional()
+    .messages({
+      'any.only': '数据周期只能是 DAILY, WEEKLY, MONTHLY 之一'
     })
 });
 

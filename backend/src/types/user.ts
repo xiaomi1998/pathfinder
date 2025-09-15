@@ -6,7 +6,8 @@ export { User };
 // 用户创建输入类型
 export interface CreateUserInput {
   username: string;
-  email: string;
+  email?: string;
+  phone?: string;
   password: string;
   organizationId?: string;
   role?: UserRole;
@@ -32,14 +33,16 @@ export type UserResponse = Omit<User, 'passwordHash'> & {
 
 // 登录输入类型
 export interface LoginInput {
-  email: string;
+  email?: string;
+  phone?: string;
   password: string;
 }
 
 // 注册输入类型
 export interface RegisterInput {
   name: string;
-  email: string;
+  phone: string;
+  verification_code: string;
   password: string;
   password_confirmation: string;
   terms_accepted: boolean;

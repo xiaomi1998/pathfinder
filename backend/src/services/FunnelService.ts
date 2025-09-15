@@ -18,12 +18,13 @@ export class FunnelService {
           name: data.name,
           description: data.description,
           canvasData: data.canvasData,
+          dataPeriod: data.dataPeriod || 'DAILY',
           userId,
           status: 'active' // 使用schema中存在的枚举值
         }
       });
 
-      logger.info(`新漏斗已创建: ${funnel.name} by user ${userId}`);
+      logger.info(`新漏斗已创建: ${funnel.name} (${funnel.dataPeriod}) by user ${userId}`);
       return funnel;
     } catch (error) {
       logger.error('创建漏斗失败:', error);
@@ -51,6 +52,22 @@ export class FunnelService {
         take: limit,
         orderBy,
         include: {
+          nodes: {
+            select: {
+              id: true,
+              label: true,
+              nodeType: true,
+              positionX: true,
+              positionY: true
+            }
+          },
+          edges: {
+            select: {
+              id: true,
+              sourceNodeId: true,
+              targetNodeId: true
+            }
+          },
           _count: {
             select: {
               nodes: true,
@@ -65,11 +82,59 @@ export class FunnelService {
     const pages = Math.ceil(total / limit);
 
     return {
-      funnels: funnels.map(funnel => ({
-        ...funnel,
-        nodeCount: funnel._count.nodes,
-        edgeCount: funnel._count.edges
-      })),
+      funnels: funnels.map(funnel => {
+        // 如果没有关联的节点数据，但有 canvasData，则从 canvasData 获取数量
+        let nodeCount = funnel._count.nodes;
+        let edgeCount = funnel._count.edges;
+        let nodes = funnel.nodes;
+        let edges = funnel.edges;
+
+        if (nodeCount === 0 && funnel.canvasData) {
+          try {
+            const canvasData = funnel.canvasData as any;
+            if (canvasData.nodes && Array.isArray(canvasData.nodes)) {
+              nodeCount = canvasData.nodes.length;
+              nodes = canvasData.nodes.map((node: any) => ({
+                id: node.id,
+                label: node.data?.label || node.label || '未命名节点',
+                nodeType: node.type || 'default',
+                positionX: node.position?.x || node.x || 0,
+                positionY: node.position?.y || node.y || 0
+              }));
+            }
+            if (canvasData.edges && Array.isArray(canvasData.edges)) {
+              edgeCount = canvasData.edges.length;
+              edges = canvasData.edges.map((edge: any) => ({
+                id: edge.id,
+                sourceNodeId: edge.source,
+                targetNodeId: edge.target
+              }));
+            }
+          } catch (error) {
+            logger.error('解析 canvasData 失败:', error);
+          }
+        }
+
+        return {
+          ...funnel,
+          node_count: nodeCount, // 使用 node_count 字段名，匹配前端类型定义
+          edge_count: edgeCount,
+          nodeCount, // 保持向后兼容
+          edgeCount, // 保持向后兼容
+          // 确保包含 nodes 和 edges 数据
+          nodes: nodes.map(node => ({
+            id: node.id,
+            type: node.nodeType,
+            position: { x: Number(node.positionX), y: Number(node.positionY) },
+            data: { label: node.label }
+          })),
+          edges: edges.map(edge => ({
+            id: edge.id,
+            source: edge.sourceNodeId,
+            target: edge.targetNodeId
+          }))
+        };
+      }),
       pagination: {
         page,
         limit,
@@ -85,11 +150,29 @@ export class FunnelService {
     const funnel = await this.prisma.funnel.findFirst({
       where: { id: funnelId, userId },
       include: {
-        nodes: true,
+        nodes: {
+          select: {
+            id: true,
+            label: true,
+            nodeType: true,
+            positionX: true,
+            positionY: true
+          }
+        },
         edges: {
           include: {
-            sourceNode: true,
-            targetNode: true
+            sourceNode: {
+              select: {
+                id: true,
+                label: true
+              }
+            },
+            targetNode: {
+              select: {
+                id: true,
+                label: true
+              }
+            }
           }
         }
       }
@@ -99,7 +182,56 @@ export class FunnelService {
       throw new ApiError('漏斗不存在', 404);
     }
 
-    return funnel;
+    // 如果没有关联的节点数据，但有 canvasData，则从 canvasData 解析
+    let nodes = funnel.nodes;
+    let edges = funnel.edges;
+
+    if (nodes.length === 0 && funnel.canvasData) {
+      try {
+        const canvasData = funnel.canvasData as any;
+        if (canvasData.nodes && Array.isArray(canvasData.nodes)) {
+          nodes = canvasData.nodes.map((node: any) => ({
+            id: node.id,
+            label: node.data?.label || node.label || '未命名节点',
+            nodeType: node.type || 'default',
+            positionX: node.position?.x || node.x || 0,
+            positionY: node.position?.y || node.y || 0
+          }));
+        }
+        if (canvasData.edges && Array.isArray(canvasData.edges)) {
+          edges = canvasData.edges.map((edge: any) => ({
+            id: edge.id,
+            sourceNodeId: edge.source,
+            targetNodeId: edge.target,
+            sourceNode: null,
+            targetNode: null
+          }));
+        }
+        logger.info(`从 canvasData 解析得到 ${nodes.length} 个节点和 ${edges.length} 条边`);
+      } catch (error) {
+        logger.error('解析 canvasData 失败:', error);
+      }
+    }
+
+    // 转换数据格式以匹配前端期望
+    const transformedFunnel = {
+      ...funnel,
+      nodes: nodes.map(node => ({
+        id: node.id,
+        type: node.nodeType,
+        position: { x: Number(node.positionX), y: Number(node.positionY) },
+        data: { label: node.label }
+      })),
+      edges: edges.map(edge => ({
+        id: edge.id,
+        source: edge.sourceNodeId,
+        target: edge.targetNodeId,
+        sourceNode: edge.sourceNode,
+        targetNode: edge.targetNode
+      }))
+    };
+
+    return transformedFunnel as any;
   }
 
   async updateFunnel(funnelId: string, userId: string, data: UpdateFunnelInput): Promise<FunnelResponse> {

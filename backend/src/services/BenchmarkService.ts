@@ -67,13 +67,13 @@ export class BenchmarkService {
       }
 
       // 按阶段和百分位数组织数据
-      const percentileData = this.organizeBenchmarkData(benchmarkRecords);
+      const percentileData = this.organizeBenchmarkData(benchmarkRecords as any);
       
       // 计算平均值
-      const averageRates = this.calculateAverageRates(benchmarkRecords);
+      const averageRates = this.calculateAverageRates(benchmarkRecords as any);
       
       // 获取样本量
-      const sampleSize = this.calculateSampleSize(benchmarkRecords);
+      const sampleSize = this.calculateSampleSize(benchmarkRecords as any);
 
       return {
         percentiles: percentileData,
@@ -245,7 +245,7 @@ export class BenchmarkService {
         }
       });
 
-      return benchmarkData;
+      return benchmarkData as any;
 
     } catch (error) {
       logger.error('Error creating benchmark data:', error);

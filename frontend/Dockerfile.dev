@@ -1,6 +1,10 @@
 # Frontend development Dockerfile
 FROM node:18-alpine
 
+# 设置 npm 和 yarn 国内镜像
+RUN npm config set registry https://registry.npmmirror.com
+RUN npm config set disturl https://registry.npmmirror.com/-/binary/node
+
 # Set working directory
 WORKDIR /app
 

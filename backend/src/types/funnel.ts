@@ -3,11 +3,15 @@ import { Funnel, Node, Edge } from '@prisma/client';
 export { Funnel };
 export type { BenchmarkData as PrismaBenchmarkData, AdviceRule as PrismaAdviceRule } from '@prisma/client';
 
+// 数据周期类型
+export type DataPeriod = 'DAILY' | 'WEEKLY' | 'MONTHLY';
+
 // 漏斗创建输入类型
 export interface CreateFunnelInput {
   name: string;
   description?: string;
   canvasData?: any;
+  dataPeriod?: DataPeriod;
 }
 
 // 漏斗更新输入类型
@@ -15,6 +19,7 @@ export interface UpdateFunnelInput {
   name?: string;
   description?: string;
   canvasData?: any;
+  dataPeriod?: DataPeriod;
 }
 
 // 漏斗响应类型（包含关联数据）
@@ -139,7 +144,7 @@ export interface FunnelTemplate {
   creator?: {
     id: string;
     username: string;
-    email: string;
+    email: string | null;
   };
 }
 
@@ -318,4 +323,151 @@ export interface AnalysisResponse {
   peerComparison?: PeerComparisonResult;
   improvementPotential?: ImprovementPotential;
   timestamp: Date;
+}
+
+// ==============================================
+// Funnel Instance Types
+// ==============================================
+
+// 漏斗实例状态类型
+export type FunnelInstanceStatus = 'draft' | 'active' | 'in_progress' | 'completed' | 'paused' | 'archived';
+
+// 创建漏斗实例输入类型
+export interface CreateFunnelInstanceInput {
+  name: string;
+  description?: string;
+  funnelTemplateId: string;
+  periodStartDate?: Date;
+  periodEndDate?: Date;
+  tags?: string[];
+  notes?: string;
+}
+
+// 更新漏斗实例输入类型
+export interface UpdateFunnelInstanceInput {
+  name?: string;
+  description?: string;
+  status?: FunnelInstanceStatus;
+  periodStartDate?: Date;
+  periodEndDate?: Date;
+  instanceData?: any;
+  tags?: string[];
+  notes?: string;
+  isActive?: boolean;
+}
+
+// 漏斗实例响应类型
+export interface FunnelInstanceResponse {
+  id: string;
+  name: string;
+  description?: string;
+  funnelTemplateId: string;
+  userId: string;
+  organizationId?: string;
+  status: FunnelInstanceStatus;
+  periodStartDate?: Date;
+  periodEndDate?: Date;
+  instanceData?: any;
+  tags: string[];
+  notes?: string;
+  isActive: boolean;
+  completedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  // Relations
+  funnelTemplate?: {
+    id: string;
+    name: string;
+    description?: string;
+  };
+  user?: {
+    id: string;
+    username: string;
+    email: string | null;
+  };
+}
+
+// 漏斗实例详情类型（包含指标数据）
+export interface FunnelInstanceDetails extends FunnelInstanceResponse {
+  instanceMetrics: FunnelInstanceMetricsResponse[];
+}
+
+// 漏斗实例指标响应类型
+export interface FunnelInstanceMetricsResponse {
+  id: string;
+  instanceId: string;
+  periodType: 'weekly' | 'monthly';
+  periodStartDate: Date;
+  periodEndDate: Date;
+  totalEntries: number;
+  totalConversions: number;
+  overallConversionRate?: number;
+  totalRevenue?: number;
+  totalCost?: number;
+  roi?: number;
+  avgTimeSpent?: number;
+  bounceRate?: number;
+  notes?: string;
+  customMetrics?: any;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// 漏斗实例列表项类型
+export interface FunnelInstanceListItem {
+  id: string;
+  name: string;
+  description?: string;
+  funnelTemplateId: string;
+  status: FunnelInstanceStatus;
+  periodStartDate?: Date;
+  periodEndDate?: Date;
+  tags: string[];
+  isActive: boolean;
+  completedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  funnelTemplate?: {
+    name: string;
+  };
+  metricsCount: number;
+  latestMetrics?: {
+    overallConversionRate?: number;
+    totalRevenue?: number;
+  };
+}
+
+// 实例使用情况统计类型
+export interface InstanceUsageStats {
+  templateId: string;
+  templateName: string;
+  totalInstances: number;
+  activeInstances: number;
+  completedInstances: number;
+  draftInstances: number;
+  averageConversionRate?: number;
+  totalRevenue?: number;
+  lastUsed?: Date;
+}
+
+// 实例比较类型
+export interface InstanceComparison {
+  instanceId: string;
+  instanceName: string;
+  metrics: FunnelInstanceMetricsResponse[];
+}
+
+// 批量实例操作输入类型
+export interface BulkInstanceOperationInput {
+  instanceIds: string[];
+  operation: 'archive' | 'activate' | 'pause' | 'delete';
+}
+
+// 实例模板使用追踪类型
+export interface TemplateUsageTracking {
+  templateId: string;
+  usageCount: number;
+  lastUsedAt: Date;
+  popularTags: string[];
+  averageCompletionTime?: number;
 }

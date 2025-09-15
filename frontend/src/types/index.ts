@@ -2,6 +2,7 @@
 export * from './user'
 export * from './funnel'
 export * from './ai'
+export * from './metrics'
 
 // Common utility types
 export interface ApiError {

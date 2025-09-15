@@ -79,8 +79,8 @@ router.get('/analysis/:id',
         id,
         user.organizationId,
         {
-          includeBenchmarks: includeBenchmarks === 'true' || includeBenchmarks === true,
-          includeSuggestions: includeSuggestions === 'true' || includeSuggestions === true
+          includeBenchmarks: includeBenchmarks === 'true',
+          includeSuggestions: includeSuggestions === 'true'
         }
       );
 

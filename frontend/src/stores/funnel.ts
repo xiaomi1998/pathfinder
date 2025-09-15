@@ -107,10 +107,28 @@ export const useFunnelStore = defineStore('funnel', () => {
       if (response.data.success) {
         const funnelData = response.data.data
         currentFunnel.value = funnelData
-        // 从canvasData中提取nodes和edges，如果没有则使用空数组
-        nodes.value = [...(funnelData.nodes || funnelData.canvasData?.nodes || [])]
-        edges.value = [...(funnelData.edges || funnelData.canvasData?.edges || [])]
-        console.log('Fetched funnel:', funnelData.name, 'with', nodes.value.length, 'nodes')
+        
+        // 确保 nodes 和 edges 数据被正确设置
+        const nodeData = funnelData.nodes || funnelData.canvasData?.nodes || []
+        const edgeData = funnelData.edges || funnelData.canvasData?.edges || []
+        
+        nodes.value = [...nodeData]
+        edges.value = [...edgeData]
+        
+        // 更新 funnels 列表中对应的漏斗数据，确保节点数量正确
+        const index = funnels.value.findIndex(f => f.id === id)
+        if (index !== -1) {
+          funnels.value[index] = {
+            ...funnels.value[index],
+            ...funnelData,
+            nodes: nodeData,
+            edges: edgeData,
+            nodeCount: nodeData.length,
+            edgeCount: edgeData.length
+          }
+        }
+        
+        console.log('Fetched funnel:', funnelData.name, 'with', nodeData.length, 'nodes')
         return funnelData
       }
     } catch (error) {

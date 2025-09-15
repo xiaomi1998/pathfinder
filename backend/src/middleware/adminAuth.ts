@@ -9,7 +9,7 @@ import { AdminService, AdminJwtPayload } from '@/services/AdminService';
 export interface RequestAdmin {
   id: string;
   username: string;
-  email: string;
+  email: string | null;
   role: AdminRole;
 }
 

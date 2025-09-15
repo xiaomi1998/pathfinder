@@ -199,14 +199,10 @@ router.get(
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
-      const funnelId = req.query.funnelId as string;
-      const context = req.query.context as string;
       
       const sessions = await aiService.getUserSessions(req.user!.id, {
         page,
-        limit,
-        funnelId,
-        context
+        limit
       });
       
       res.json({

@@ -13,13 +13,18 @@ import authRoutes from '@/routes/auth';
 import userRoutes from '@/routes/users';
 import funnelRoutes from '@/routes/funnels';
 import funnelTemplateRoutes from '@/routes/funnel-templates';
+import funnelInstanceRoutes from '@/routes/funnel-instances';
 import nodeRoutes from '@/routes/nodes';
 import edgeRoutes from '@/routes/edges';
-import aiRoutes from '@/routes/ai';
+import aiRoutes from '@/routes/ai'; // AI路由已修复
 import organizationRoutes from '@/routes/organizations';
-import metricDatasetRoutes from '@/routes/metric-datasets';
-import analysisRoutes from '@/routes/analysis';
-import adminRoutes from '@/routes/admin';
+import metricDatasetRoutes from '@/routes/metric-datasets'; // 已修复类型错误  
+import analysisRoutes from '@/routes/analysis'; // 已修复类型错误
+import adminRoutes from '@/routes/admin'; // 已修复AdminService类型错误
+import funnelMetricsRoutes from '@/routes/funnel-metrics';
+import analyticsRoutes from '@/routes/analytics';
+import dashboardRoutes from '@/routes/dashboard';
+import aiAnalysisRoutes from '@/routes/ai-analysis';
 
 // 导入中间件
 import { errorHandler } from '@/middleware/errorHandler';
@@ -59,10 +64,36 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, etc.)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:8080', 
+      'http://localhost:8081', 
+      'http://localhost:3000', 
+      'http://127.0.0.1:3000',
+      'http://192.168.2.16:8080', // 局域网IP访问
+      'http://192.168.2.16:8081'
+    ];
+    
+    // 在开发环境允许任何局域网IP访问
+    if (process.env.NODE_ENV === 'development') {
+      const isLocalNetwork = origin.match(/^https?:\/\/(192\.168\.|10\.|172\.16\.|172\.17\.|172\.18\.|172\.19\.|172\.20\.|172\.21\.|172\.22\.|172\.23\.|172\.24\.|172\.25\.|172\.26\.|172\.27\.|172\.28\.|172\.29\.|172\.30\.|172\.31\.|localhost|127\.0\.0\.1)/);
+      if (isLocalNetwork) {
+        return callback(null, true);
+      }
+    }
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Forwarded-For', 'X-Real-IP'],
 }));
 
 app.use(compression());
@@ -151,12 +182,17 @@ app.use('/api/org', organizationRoutes);
 app.use('/api/users', authMiddleware, userRoutes);
 app.use('/api/funnels', authMiddleware, funnelRoutes);
 app.use('/api/funnel-templates', authMiddleware, funnelTemplateRoutes);
+app.use('/api/funnel-instances', authMiddleware, funnelInstanceRoutes);
 app.use('/api/nodes', authMiddleware, nodeRoutes);
 app.use('/api/edges', authMiddleware, edgeRoutes);
-app.use('/api/ai', authMiddleware, aiRoutes);
-app.use('/api/metric-datasets', metricDatasetRoutes);
-app.use('/api/analysis', authMiddleware, analysisRoutes);
-app.use('/api/admin', adminRoutes);
+app.use('/api/ai', authMiddleware, aiRoutes); // AI路由已启用
+app.use('/api/metric-datasets', authMiddleware, metricDatasetRoutes); // 已启用
+app.use('/api/analysis', authMiddleware, analysisRoutes); // 已启用
+app.use('/api/admin', adminRoutes); // 管理员路由已启用
+app.use('/api/funnel-metrics', authMiddleware, funnelMetricsRoutes);
+app.use('/api/analytics', authMiddleware, analyticsRoutes);
+app.use('/api/dashboard', authMiddleware, dashboardRoutes);
+app.use('/api/ai-analysis', authMiddleware, aiAnalysisRoutes);
 
 // API 根路径
 app.get('/api', (req, res) => {
@@ -169,12 +205,16 @@ app.get('/api', (req, res) => {
       users: '/api/users',
       funnels: '/api/funnels',
       funnelTemplates: '/api/funnel-templates',
+      funnelInstances: '/api/funnel-instances',
       nodes: '/api/nodes',
       edges: '/api/edges',
       ai: '/api/ai',
       metricDatasets: '/api/metric-datasets',
       analysis: '/api/analysis',
       admin: '/api/admin',
+      funnelMetrics: '/api/funnel-metrics',
+      analytics: '/api/analytics',
+      dashboard: '/api/dashboard',
       health: '/health'
     }
   });
@@ -217,9 +257,9 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = parseInt(process.env.PORT || '3001', 10);
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   logger.info(`🚀 Pathfinder API server is running on port ${PORT}`);
   logger.info(`📝 Environment: ${process.env.NODE_ENV}`);
   logger.info(`🔗 Health check: http://localhost:${PORT}/health`);

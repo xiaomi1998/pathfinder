@@ -276,7 +276,19 @@ export class DiagnosticService {
       const singleStageAnalysis = this.analyzeSingleStages(companyData, benchmarkData);
       
       // 跨阶段分析
-      const crossStageAnalysis = this.performCrossStageAnalysis(companyData, benchmarkData);
+      const rawCrossStageAnalysis = this.performCrossStageAnalysis(companyData, benchmarkData);
+      const crossStageAnalysis = {
+        flowConsistency: rawCrossStageAnalysis.flowConsistency,
+        dropOffAnalysis: rawCrossStageAnalysis.dropOffPoints.map(point => ({
+          stage: point.from,
+          dropOff: point.dropOffRate,
+          severity: point.severity as 'high' | 'medium' | 'low'
+        })),
+        bottleneckIdentification: {
+          stage: rawCrossStageAnalysis.bottleneckStage,
+          impact: rawCrossStageAnalysis.bottleneckStage ? 0.8 : 0
+        }
+      };
       
       // 竞争对手分析
       const competitiveAnalysis = this.performCompetitiveAnalysis(companyData, benchmarkData);

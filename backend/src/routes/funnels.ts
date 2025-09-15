@@ -79,7 +79,12 @@ router.post(
     body('canvasData')
       .optional()
       .isObject()
-      .withMessage('画布数据必须是有效的JSON对象')
+      .withMessage('画布数据必须是有效的JSON对象'),
+    
+    body('dataPeriod')
+      .optional()
+      .isIn(['DAILY', 'WEEKLY', 'MONTHLY'])
+      .withMessage('数据周期只能是 DAILY, WEEKLY, MONTHLY 之一')
   ],
   validateRequest,
   async (req, res, next) => {
@@ -141,7 +146,12 @@ router.put(
     body('canvasData')
       .optional()
       .isObject()
-      .withMessage('画布数据必须是有效的JSON对象')
+      .withMessage('画布数据必须是有效的JSON对象'),
+    
+    body('dataPeriod')
+      .optional()
+      .isIn(['DAILY', 'WEEKLY', 'MONTHLY'])
+      .withMessage('数据周期只能是 DAILY, WEEKLY, MONTHLY 之一')
   ],
   validateRequest,
   async (req, res, next) => {

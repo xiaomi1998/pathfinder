@@ -61,7 +61,7 @@ export const parseAPIError = (error: any): ErrorInfo => {
       return {
         type: 'auth',
         title: '登录信息错误',
-        message: responseData?.message || responseData?.error || '邮箱或密码错误，请重新输入',
+        message: responseData?.message || responseData?.error || '手机号或密码错误，请重新输入',
         showRetry: false
       }
 
@@ -85,7 +85,7 @@ export const parseAPIError = (error: any): ErrorInfo => {
       return {
         type: 'validation',
         title: '数据冲突',
-        message: responseData?.message || responseData?.error || '该邮箱已被注册，请使用其他邮箱',
+        message: responseData?.message || responseData?.error || '该手机号已被注册，请使用其他手机号',
         showRetry: false
       }
 

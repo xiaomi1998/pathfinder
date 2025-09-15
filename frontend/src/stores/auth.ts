@@ -216,7 +216,7 @@ export const useAuthStore = defineStore('auth', () => {
     return permissions.some(permission => hasPermission(permission))
   }
 
-  const initializeAuth = () => {
+  const initializeAuth = async () => {
     // Load stored tokens
     const storedToken = localStorage.getItem('accessToken')
     const storedRefreshToken = localStorage.getItem('refreshToken')
@@ -236,7 +236,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     // Verify token and get user data if authenticated
     if (token.value) {
-      getCurrentUser()
+      await getCurrentUser()
     }
   }
 

@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.16",
-    "@heroicons/vue": "^2.0.18",
+    "@heroicons/vue": "^2.2.0",
     "@vueuse/core": "^10.7.1",
     "axios": "^1.6.5",
     "chart.js": "^4.4.1",
@@ -43,6 +43,7 @@
     "d3-zoom": "^3.0.0",
     "date-fns": "^3.2.0",
     "lodash-es": "^4.17.21",
+    "marked": "^16.2.1",
     "nprogress": "^0.2.0",
     "pinia": "^2.1.7",
     "vee-validate": "^4.12.4",

@@ -1,38 +1,67 @@
 #!/bin/bash
 
+# 启动开发环境脚本
 echo "🚀 启动 Pathfinder 开发环境..."
-echo "================================"
 
-# 检查 .env 文件
-if [ ! -f .env ]; then
-    echo "📋 创建环境变量文件..."
-    cp .env.example .env
-    echo "⚠️  请编辑 .env 文件配置 GEMINI_API_KEY"
+# 检查并清理端口
+echo "📋 检查端口占用..."
+backend_pid=$(lsof -ti:3001)
+frontend_pid=$(lsof -ti:8080)
+
+if [ ! -z "$backend_pid" ]; then
+    echo "⚠️  端口 3001 被占用，清理进程 $backend_pid"
+    kill -9 $backend_pid 2>/dev/null
+    sleep 2
 fi
 
-# 构建并启动服务
-echo "🐳 启动 Docker 容器..."
-docker-compose -f docker-compose.dev.yml up --build -d
+if [ ! -z "$frontend_pid" ]; then
+    echo "⚠️  端口 8080 被占用，清理进程 $frontend_pid"
+    kill -9 $frontend_pid 2>/dev/null
+    sleep 2
+fi
 
-echo "⏳ 等待服务启动..."
-sleep 10
+# 清理僵尸进程
+echo "🧹 清理僵尸进程..."
+pkill -f "nodemon.*pathfinder" 2>/dev/null || true
+pkill -f "ts-node.*pathfinder" 2>/dev/null || true
+pkill -f "vite.*pathfinder" 2>/dev/null || true
 
-# 检查服务状态
-echo "📊 检查服务状态..."
-docker-compose -f docker-compose.dev.yml ps
+sleep 3
 
+# 启动后端
+echo "🔧 启动后端服务..."
+cd backend
+npm run dev &
+backend_job=$!
+
+# 等待后端启动
+echo "⏳ 等待后端服务启动..."
+sleep 8
+
+# 检查后端是否成功启动
+if curl -s http://localhost:3001/health > /dev/null; then
+    echo "✅ 后端服务启动成功"
+else
+    echo "❌ 后端服务启动失败"
+    kill $backend_job 2>/dev/null
+    exit 1
+fi
+
+# 启动前端
+echo "🎨 启动前端服务..."
+cd ../frontend
+npm run dev &
+frontend_job=$!
+
+# 等待前端启动
+sleep 5
+
+echo "🎉 开发环境启动完成！"
+echo "📱 前端: http://localhost:8080"
+echo "🔗 后端: http://localhost:3001"
+echo "❤️  健康检查: http://localhost:3001/health"
 echo ""
-echo "✅ 开发环境启动完成！"
-echo "================================"
-echo "📱 前端应用: http://localhost:3000"
-echo "🔗 后端API:  http://localhost:8080"
-echo "🗄️  数据库:   localhost:5432"
-echo "🔴 Redis:    localhost:6379"
-echo "⚙️  PgAdmin:  http://localhost:5050"
-echo "================================"
-echo ""
-echo "💡 使用命令："
-echo "   查看日志: docker-compose -f docker-compose.dev.yml logs -f"
-echo "   停止服务: docker-compose -f docker-compose.dev.yml down"
-echo "   重启服务: docker-compose -f docker-compose.dev.yml restart"
-echo ""
+echo "按 Ctrl+C 停止所有服务"
+
+# 等待用户中断
+wait

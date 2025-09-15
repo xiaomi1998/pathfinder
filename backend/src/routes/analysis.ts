@@ -2,8 +2,8 @@ import { Router, Request, Response } from 'express';
 import { authMiddleware as auth } from '@/middleware/auth';
 import { validateRequest } from '@/middleware/validateRequest';
 import { 
-  AnalysisRequest, 
-  AnalysisResponse,
+  FunnelAnalysisRequest, 
+  FunnelAnalysisResponse,
   ApiResponse,
   GeneratedRecommendation,
   DiagnosticResult,
@@ -42,9 +42,9 @@ router.post('/comprehensive', auth, async (req: Request, res: Response) => {
       includePeerComparison = true,
       includeImprovementPotential = true,
       maxRecommendations = 12
-    }: AnalysisRequest = req.body;
+    }: FunnelAnalysisRequest = req.body;
 
-    const result: Partial<AnalysisResponse> = {
+    const result: Partial<FunnelAnalysisResponse> = {
       timestamp: new Date()
     };
 
@@ -102,9 +102,9 @@ router.post('/comprehensive', auth, async (req: Request, res: Response) => {
       );
     }
 
-    const response: ApiResponse<AnalysisResponse> = {
+    const response: ApiResponse<FunnelAnalysisResponse> = {
       success: true,
-      data: result as AnalysisResponse,
+      data: result as FunnelAnalysisResponse,
       message: '综合分析完成'
     };
 

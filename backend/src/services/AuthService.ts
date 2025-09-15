@@ -20,7 +20,7 @@ export class AuthService {
   }
 
   async register(data: RegisterInput): Promise<LoginResponse> {
-    const { name, email, password, password_confirmation, terms_accepted } = data;
+    const { name, phone, verification_code, password, password_confirmation, terms_accepted } = data;
 
     // 验证密码匹配
     if (password !== password_confirmation) {
@@ -32,13 +32,19 @@ export class AuthService {
       throw new ApiError('必须同意服务条款', 400);
     }
 
-    // 检查邮箱是否已存在
-    const existingEmail = await this.prisma.user.findUnique({
-      where: { email }
+    // TODO: 验证手机验证码
+    // 目前先简单验证，实际应用中需要从Redis或数据库中验证
+    if (verification_code !== '123456') {
+      throw new ApiError('验证码错误或已过期', 400);
+    }
+
+    // 检查手机号是否已存在
+    const existingPhone = await this.prisma.user.findUnique({
+      where: { phone: phone }
     });
 
-    if (existingEmail) {
-      throw new ApiError('邮箱已被注册', 409);
+    if (existingPhone) {
+      throw new ApiError('手机号已被注册', 409);
     }
 
     // 密码哈希
@@ -66,7 +72,7 @@ export class AuthService {
       const user = await this.prisma.user.create({
         data: {
           username,
-          email,
+          phone: phone,
           passwordHash
         }
       });
@@ -82,13 +88,13 @@ export class AuthService {
         where: { id: user.id }
       });
 
-      logger.info(`新用户注册: ${username} (${email}) with organization: ${organization.name}`);
+      logger.info(`新用户注册: ${username} (${phone}) with organization: ${organization.name}`);
 
       // 生成 JWT（包含组织信息）
       const token = this.generateToken({
         userId: user.id,
         username: user.username,
-        email: user.email,
+        phone: user.phone ?? undefined,
         organizationId: organization.id,
         role: updatedUser.role
       });
@@ -97,11 +103,13 @@ export class AuthService {
         id: updatedUser.id,
         username: updatedUser.username,
         email: updatedUser.email,
+        phone: updatedUser.phone,
         firstName: updatedUser.firstName,
         lastName: updatedUser.lastName,
         avatar: updatedUser.avatar,
         organizationId: updatedUser.organizationId,
         role: updatedUser.role,
+        analysisQuota: updatedUser.analysisQuota,
         createdAt: updatedUser.createdAt,
         updatedAt: updatedUser.updatedAt,
         lastLoginAt: updatedUser.lastLoginAt,
@@ -127,13 +135,18 @@ export class AuthService {
   async login(data: LoginInput): Promise<LoginResponse> {
     const { email, password } = data;
 
-    // 查找用户
-    const user = await this.prisma.user.findUnique({
-      where: { email }
+    // 查找用户 - 支持邮箱或手机号登录
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: email },
+          { phone: email } // 这里的email字段实际可能是手机号
+        ]
+      }
     });
 
     if (!user) {
-      throw new ApiError('邮箱或密码错误', 401);
+      throw new ApiError('手机号或密码错误', 401);
     }
 
     // 检查账户是否激活
@@ -144,7 +157,7 @@ export class AuthService {
     // 验证密码
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
-      throw new ApiError('邮箱或密码错误', 401);
+      throw new ApiError('手机号或密码错误', 401);
     }
 
     try {
@@ -158,22 +171,25 @@ export class AuthService {
 
       // 生成 JWT
       const token = this.generateToken({
-        userId: user.id,
-        username: user.username,
-        email: user.email,
-        organizationId: user.organizationId,
-        role: user.role
+        userId: updatedUser.id,
+        username: updatedUser.username,
+        email: updatedUser.email ?? undefined,
+        phone: updatedUser.phone ?? undefined,
+        organizationId: updatedUser.organizationId ?? undefined,
+        role: updatedUser.role
       });
 
       const userResponse: UserResponse = {
         id: updatedUser.id,
         username: updatedUser.username,
         email: updatedUser.email,
+        phone: updatedUser.phone,
         firstName: updatedUser.firstName,
         lastName: updatedUser.lastName,
         avatar: updatedUser.avatar,
         organizationId: updatedUser.organizationId,
         role: updatedUser.role,
+        analysisQuota: updatedUser.analysisQuota,
         createdAt: updatedUser.createdAt,
         updatedAt: updatedUser.updatedAt,
         lastLoginAt: updatedUser.lastLoginAt,
@@ -216,16 +232,19 @@ export class AuthService {
         id: user.id,
         username: user.username,
         email: user.email,
+        phone: user.phone,
         firstName: user.firstName,
         lastName: user.lastName,
         avatar: user.avatar,
         organizationId: user.organizationId,
         role: user.role,
+        analysisQuota: user.analysisQuota,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
         lastLoginAt: user.lastLoginAt,
         isActive: user.isActive,
-        isEmailVerified: user.isEmailVerified
+        isEmailVerified: user.isEmailVerified,
+        name: user.username // 添加name字段
       };
 
       return userResponse;
@@ -256,23 +275,29 @@ export class AuthService {
       const newToken = this.generateToken({
         userId: user.id,
         username: user.username,
-        email: user.email
+        email: user.email ?? undefined,
+        phone: user.phone ?? undefined,
+        organizationId: user.organizationId ?? undefined,
+        role: user.role
       });
 
       const userResponse: UserResponse = {
         id: user.id,
         username: user.username,
         email: user.email,
+        phone: user.phone,
         firstName: user.firstName,
         lastName: user.lastName,
         avatar: user.avatar,
         organizationId: user.organizationId,
         role: user.role,
+        analysisQuota: user.analysisQuota,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
         lastLoginAt: user.lastLoginAt,
         isActive: user.isActive,
-        isEmailVerified: user.isEmailVerified
+        isEmailVerified: user.isEmailVerified,
+        name: user.username // 添加name字段
       };
 
       return {

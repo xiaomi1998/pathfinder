@@ -34,9 +34,10 @@
           id="industry"
           v-model="form.industry"
           name="industry"
-          class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+          :disabled="industriesLoading"
+          class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm disabled:opacity-50"
         >
-          <option value="">请选择行业</option>
+          <option value="">{{ industriesLoading ? '加载行业选项中...' : '请选择行业' }}</option>
           <option v-for="industry in industries" :key="industry.value" :value="industry.value">
             {{ industry.label }}
           </option>
@@ -277,20 +278,16 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, computed, watch, onMounted, nextTick } from 'vue'
+import { reactive, computed, watch, onMounted, nextTick, ref } from 'vue'
 import { CheckCircleIcon, InformationCircleIcon } from '@heroicons/vue/24/outline'
 import { getLocationOptions } from '@/utils/locationMapping'
+import { organizationAPI, type Industry } from '@/api/organization'
+
+import type { OrganizationInfo } from '@/types'
 
 // Props
 interface Props {
-  modelValue?: {
-    name: string
-    industry: string
-    size: string
-    description: string
-    location: string
-    salesModel: string
-  }
+  modelValue?: OrganizationInfo
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -312,15 +309,8 @@ interface Emits {
 
 const emit = defineEmits<Emits>()
 
-// Form data
-const form = reactive({
-  name: props.modelValue.name || '',
-  industry: props.modelValue.industry || '',
-  size: props.modelValue.size || '',
-  description: props.modelValue.description || '',
-  location: props.modelValue.location || '',
-  salesModel: props.modelValue.salesModel || ''
-})
+// Form data - sync with modelValue
+const form = reactive<OrganizationInfo>({ ...props.modelValue })
 
 // Validation errors
 const errors = reactive({
@@ -332,20 +322,41 @@ const errors = reactive({
   salesModel: ''
 })
 
-// Industry options
-const industries = [
-  { value: 'technology', label: '科技/互联网' },
-  { value: 'finance', label: '金融/保险' },
-  { value: 'healthcare', label: '医疗健康' },
-  { value: 'education', label: '教育培训' },
-  { value: 'retail', label: '零售/电商' },
-  { value: 'manufacturing', label: '制造业' },
-  { value: 'consulting', label: '咨询服务' },
-  { value: 'media', label: '媒体/广告' },
-  { value: 'real_estate', label: '房地产' },
-  { value: 'travel', label: '旅游/酒店' },
-  { value: 'other', label: '其他' }
-]
+// Industry options - loaded from database
+const industries = ref<{ value: string; label: string }[]>([])
+const industriesLoading = ref(false)
+
+// Load industries from database
+const loadIndustries = async () => {
+  try {
+    industriesLoading.value = true
+    const response = await organizationAPI.getIndustries()
+    if (response.data.success) {
+      industries.value = response.data.data.map((industry: Industry) => ({
+        value: industry.code,
+        label: industry.name
+      }))
+    }
+  } catch (error) {
+    console.error('Failed to load industries:', error)
+    // Fallback to hardcoded options if API fails
+    industries.value = [
+      { value: 'technology', label: '科技/互联网' },
+      { value: 'finance', label: '金融/保险' },
+      { value: 'healthcare', label: '医疗健康' },
+      { value: 'education', label: '教育培训' },
+      { value: 'retail', label: '零售/电商' },
+      { value: 'manufacturing', label: '制造业' },
+      { value: 'consulting', label: '咨询服务' },
+      { value: 'media', label: '媒体/广告' },
+      { value: 'real_estate', label: '房地产' },
+      { value: 'travel', label: '旅游/酒店' },
+      { value: 'other', label: '其他' }
+    ]
+  } finally {
+    industriesLoading.value = false
+  }
+}
 
 // Company size options (adjusted to user requirements)
 const companySizes = [
@@ -459,26 +470,28 @@ const isFormValid = computed(() => {
 watch(form, () => {
   emit('update:modelValue', { ...form })
   const isValid = isFormValid.value
-  
-  // Use nextTick to ensure DOM updates before emitting validation
-  nextTick(() => {
-    emit('validation-change', isValid)
-    console.log('🔄 OrganizationInfoForm validation changed:', isValid, 'form state:', {
-      name: form.name.trim().length >= 2,
-      location: !!form.location,
-      size: !!form.size,
-      salesModel: !!form.salesModel
-    })
-    
-    // Also emit immediately without nextTick for faster response
-    emit('validation-change', isValid)
-  })
+  emit('validation-change', isValid)
+}, { deep: true, immediate: true })
+
+// Watch modelValue and sync form
+watch(() => props.modelValue, (newValue) => {
+  if (newValue) {
+    Object.assign(form, newValue)
+  }
 }, { deep: true, immediate: true })
 
 watch(() => props.modelValue, (newValue) => {
   console.log('📋 OrganizationInfoForm received new modelValue:', newValue)
-  if (newValue) {
-    Object.assign(form, newValue)
+  if (newValue && typeof newValue === 'object') {
+    // 确保每个字段都被正确赋值，使用默认值防止 undefined
+    form.name = newValue.name || ''
+    form.industry = newValue.industry || ''
+    form.size = newValue.size || ''
+    form.description = newValue.description || ''
+    form.location = newValue.location || ''
+    form.salesModel = newValue.salesModel || ''
+    
+    console.log('📋 OrganizationInfoForm form updated:', { ...form })
   } else {
     // If modelValue is reset to empty/null, clear the form
     form.name = ''
@@ -487,6 +500,7 @@ watch(() => props.modelValue, (newValue) => {
     form.description = ''
     form.location = ''
     form.salesModel = ''
+    console.log('📋 OrganizationInfoForm form cleared')
   }
   
   // Force validation update after form reset
@@ -495,8 +509,9 @@ watch(() => props.modelValue, (newValue) => {
   console.log('📋 OrganizationInfoForm validation after modelValue change:', isValid)
 }, { deep: true, immediate: true })
 
-// Initialize validation on mount
-onMounted(() => {
+// Initialize validation on mount and load industries
+onMounted(async () => {
+  await loadIndustries()
   const isValid = isFormValid.value
   emit('validation-change', isValid)
   console.log('🎆 OrganizationInfoForm mounted, initial validation:', isValid)

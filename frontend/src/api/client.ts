@@ -20,6 +20,29 @@ apiClient.interceptors.request.use(
     
     if (authStore.token) {
       config.headers.Authorization = `Bearer ${authStore.token}`
+      console.log('🔐 Request with auth token:', {
+        url: config.url,
+        method: config.method,
+        token: authStore.token.slice(0, 10) + '...',
+        data: config.method?.toUpperCase() === 'PUT' ? JSON.stringify(config.data, null, 2) : config.data
+      })
+    } else {
+      console.log('⚠️ Request without auth token:', {
+        url: config.url,
+        method: config.method,
+        data: config.method?.toUpperCase() === 'PUT' ? JSON.stringify(config.data, null, 2) : config.data
+      })
+    }
+
+    // 禁用缓存，确保获取最新数据
+    config.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    config.headers['Pragma'] = 'no-cache'
+    config.headers['Expires'] = '0'
+    
+    // 为GET请求添加时间戳
+    if (config.method?.toLowerCase() === 'get') {
+      config.params = config.params || {}
+      config.params._t = Date.now()
     }
 
     // Update last activity for authenticated requests
@@ -30,6 +53,7 @@ apiClient.interceptors.request.use(
     return config
   },
   (error) => {
+    console.error('❌ Request interceptor error:', error)
     return Promise.reject(error)
   }
 )
@@ -37,6 +61,12 @@ apiClient.interceptors.request.use(
 // Response interceptor - handle errors and token refresh
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
+    console.log('✅ Response success:', {
+      url: response.config.url,
+      method: response.config.method,
+      status: response.status,
+      data: response.data
+    })
     return response
   },
   async (error: AxiosError) => {
@@ -45,9 +75,23 @@ apiClient.interceptors.response.use(
     
     // Handle network errors
     if (!error.response) {
+      console.error('❌ Network error:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        message: error.message
+      })
       // Let page-level error handling deal with network errors
       return Promise.reject(error)
     }
+    
+    console.error('❌ Response error:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+      stack: error.stack
+    })
 
     const { status, data } = error.response
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean }
@@ -150,5 +194,8 @@ export const api = {
     }
   },
 }
+
+// Export client alias for backward compatibility
+export const client = apiClient
 
 export default apiClient

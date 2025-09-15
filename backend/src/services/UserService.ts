@@ -26,6 +26,7 @@ export class UserService {
       id: user.id,
       username: user.username,
       email: user.email,
+      phone: user.phone,
       firstName: user.firstName,
       lastName: user.lastName,
       avatar: user.avatar,
@@ -35,7 +36,8 @@ export class UserService {
       updatedAt: user.updatedAt,
       lastLoginAt: user.lastLoginAt,
       isActive: user.isActive,
-      isEmailVerified: user.isEmailVerified
+      isEmailVerified: user.isEmailVerified,
+      analysisQuota: user.analysisQuota
     };
 
     return {
@@ -94,14 +96,18 @@ export class UserService {
         id: user.id,
         username: user.username,
         email: user.email,
+        phone: user.phone,
         firstName: user.firstName,
         lastName: user.lastName,
         avatar: user.avatar,
+        organizationId: user.organizationId,
+        role: user.role,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
         lastLoginAt: user.lastLoginAt,
         isActive: user.isActive,
-        isEmailVerified: user.isEmailVerified
+        isEmailVerified: user.isEmailVerified,
+        analysisQuota: user.analysisQuota
       };
     } catch (error) {
       logger.error('更新用户失败:', error);

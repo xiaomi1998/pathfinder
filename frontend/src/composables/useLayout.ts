@@ -1,4 +1,4 @@
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, type Ref } from 'vue'
 import * as d3 from 'd3'
 import type { FunnelNode, FunnelEdge, Position } from '@/types/funnel'
 import type { 
@@ -243,10 +243,10 @@ export function useLayout(
     }
 
     // Create D3 transition
-    d3.select({})
+    d3.select(document.createElement('div'))
       .transition()
       .duration(transition.duration)
-      .ease(d3.easeInOut)
+      .ease(d3.easeCubicInOut)
       .tween('position', () => {
         const interpolateX = d3.interpolate(transition.fromPosition.x, transition.toPosition.x)
         const interpolateY = d3.interpolate(transition.fromPosition.y, transition.toPosition.y)
