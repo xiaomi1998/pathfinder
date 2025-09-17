@@ -13,12 +13,20 @@ export const registerSchema = Joi.object({
       'any.required': '姓名是必填项'
     }),
 
-  email: Joi.string()
-    .email()
+  phone: Joi.string()
+    .pattern(/^1[3-9]\d{9}$/)
     .required()
     .messages({
-      'string.email': '请输入有效的邮箱地址',
-      'any.required': '邮箱是必填项'
+      'string.pattern.base': '请输入有效的手机号码',
+      'any.required': '手机号是必填项'
+    }),
+
+  verification_code: Joi.string()
+    .pattern(/^\d{6}$/)
+    .required()
+    .messages({
+      'string.pattern.base': '验证码必须为6位数字',
+      'any.required': '验证码是必填项'
     }),
 
   password: Joi.string()
@@ -52,12 +60,15 @@ export const registerSchema = Joi.object({
 
 // 用户登录验证 schema
 export const loginSchema = Joi.object({
-  email: Joi.string()
-    .email()
+  email: Joi.alternatives()
+    .try(
+      Joi.string().email(),
+      Joi.string().pattern(/^1[3-9]\d{9}$/)
+    )
     .required()
     .messages({
-      'string.email': '请输入有效的邮箱地址',
-      'any.required': '邮箱是必填项'
+      'alternatives.match': '请输入有效的手机号码',
+      'any.required': '手机号是必填项'
     }),
 
   password: Joi.string()

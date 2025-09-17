@@ -40,7 +40,10 @@ export interface ApiError {
 export interface JwtPayload {
   userId: string;
   username: string;
-  email: string;
+  email?: string;
+  phone?: string;
+  organizationId?: string;
+  role?: string;
   iat?: number;
   exp?: number;
 }
@@ -57,7 +60,9 @@ export interface PasswordResetPayload {
 export interface RequestUser {
   id: string;
   username: string;
-  email: string;
+  email?: string;
+  organizationId?: string;
+  role?: string;
 }
 
 // Express Request 扩展
@@ -71,7 +76,66 @@ declare global {
 }
 
 export * from './user';
-export * from './funnel';
 export * from './node';
 export * from './edge';
-export * from './ai';
+export * from './organization';
+export * from './funnelMetrics';
+export * from './analytics';
+
+// Export funnel types with specific naming to avoid conflicts
+export type {
+  Funnel,
+  CreateFunnelInput,
+  UpdateFunnelInput,
+  FunnelResponse,
+  FunnelDetails,
+  FunnelStats,
+  FunnelPerformance,
+  CanvasData,
+  CanvasNode,
+  CanvasEdge,
+  FunnelTemplateData,
+  CreateFunnelTemplateRequest,
+  UpdateFunnelTemplateRequest,
+  FunnelTemplate,
+  FunnelTemplateListItem,
+  FunnelStageData,
+  FunnelMetricData,
+  BenchmarkData,
+  CreateBenchmarkDataRequest,
+  AdviceRule,
+  GeneratedRecommendation,
+  DiagnosticResult,
+  PeerComparisonResult,
+  ImprovementPotential,
+  AnalysisRequest as FunnelAnalysisRequest,
+  AnalysisResponse as FunnelAnalysisResponse,
+  // Funnel Instance types
+  FunnelInstanceStatus,
+  CreateFunnelInstanceInput,
+  UpdateFunnelInstanceInput,
+  FunnelInstanceResponse,
+  FunnelInstanceDetails,
+  FunnelInstanceMetricsResponse,
+  FunnelInstanceListItem,
+  InstanceUsageStats,
+  InstanceComparison,
+  BulkInstanceOperationInput,
+  TemplateUsageTracking
+} from './funnel';
+
+// Export AI types with specific naming to avoid conflicts
+export type {
+  ChatRequest,
+  ChatResponse,
+  CreateAiSessionInput,
+  CreateAiMessageInput,
+  AiSessionResponse,
+  AiSessionDetails,
+  AiAction,
+  AiInsight,
+  AiRecommendation,
+  SessionContextConfig,
+  AnalysisRequest as AiAnalysisRequest,
+  AnalysisResponse as AiAnalysisResponse
+} from './ai';

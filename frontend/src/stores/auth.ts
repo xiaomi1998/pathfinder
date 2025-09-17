@@ -1,12 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authAPI } from '@api/auth'
-import type { User, LoginCredentials, RegisterCredentials } from '@/types/user'
+import type { User, LoginCredentials, RegisterCredentials, Organization } from '@/types/user'
 import { parseAPIError, type ErrorInfo } from '@/utils/errorHandler'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
   const user = ref<User | null>(null)
+  const organization = ref<Organization | null>(null)
   const token = ref<string | null>(null)
   const refreshToken = ref<string | null>(null)
   const isLoading = ref(false)
@@ -16,12 +17,18 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!token.value && !!user.value)
   const userRole = computed(() => user.value?.role)
   const userPermissions = computed(() => user.value?.permissions || [])
-  const isAdmin = computed(() => userRole.value === 'admin')
+  const isAdmin = computed(() => ['owner', 'admin'].includes(userRole.value || ''))
+  const isOwner = computed(() => userRole.value === 'owner')
   const userName = computed(() => user.value?.name || user.value?.email || '')
+  const organizationName = computed(() => organization.value?.name || '')
 
   // Actions
   const setUser = (userData: User) => {
     user.value = userData
+  }
+
+  const setOrganization = (orgData: Organization) => {
+    organization.value = orgData
   }
 
   const setTokens = (accessToken: string, refresh?: string) => {
@@ -58,12 +65,15 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await authAPI.login(credentials)
       
       if (response.data.success) {
-        const { user: userData, access_token: accessToken, refresh_token: refresh } = response.data.data
+        const { user: userData, organization: orgData, access_token: accessToken, refresh_token: refresh } = response.data.data
         
         setUser(userData)
+        if (orgData) {
+          setOrganization(orgData)
+        }
         setTokens(accessToken, refresh)
         
-        return { success: true, user: userData }
+        return { success: true, user: userData, organization: orgData }
       } else {
         throw new Error(response.data.message || '登录失败')
       }
@@ -86,12 +96,15 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await authAPI.register(credentials)
       
       if (response.data.success) {
-        const { user: userData, access_token: accessToken, refresh_token: refresh } = response.data.data
+        const { user: userData, organization: orgData, access_token: accessToken, refresh_token: refresh } = response.data.data
         
         setUser(userData)
+        if (orgData) {
+          setOrganization(orgData)
+        }
         setTokens(accessToken, refresh)
         
-        return { success: true, user: userData }
+        return { success: true, user: userData, organization: orgData }
       } else {
         throw new Error(response.data.message || '注册失败')
       }
@@ -116,6 +129,7 @@ export const useAuthStore = defineStore('auth', () => {
       console.error('Logout error:', error)
     } finally {
       user.value = null
+      organization.value = null
       clearTokens()
       lastActivity.value = null
       localStorage.removeItem('lastActivity')
@@ -202,7 +216,7 @@ export const useAuthStore = defineStore('auth', () => {
     return permissions.some(permission => hasPermission(permission))
   }
 
-  const initializeAuth = () => {
+  const initializeAuth = async () => {
     // Load stored tokens
     const storedToken = localStorage.getItem('accessToken')
     const storedRefreshToken = localStorage.getItem('refreshToken')
@@ -222,7 +236,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     // Verify token and get user data if authenticated
     if (token.value) {
-      getCurrentUser()
+      await getCurrentUser()
     }
   }
 
@@ -249,6 +263,7 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     // State
     user,
+    organization,
     token,
     refreshToken,
     isLoading,
@@ -259,10 +274,13 @@ export const useAuthStore = defineStore('auth', () => {
     userRole,
     userPermissions,
     isAdmin,
+    isOwner,
     userName,
+    organizationName,
     
     // Actions
     setUser,
+    setOrganization,
     setTokens,
     clearTokens,
     updateLastActivity,

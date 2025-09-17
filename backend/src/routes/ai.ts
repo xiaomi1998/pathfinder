@@ -1,11 +1,14 @@
 import { Router } from 'express';
 import { body, param, query } from 'express-validator';
 import { AiService } from '@/services/AiService';
+import { AiUsageService } from '@/services/AiUsageService';
 import { validateRequest } from '@/middleware/validateRequest';
 import { ChatRequest, AnalysisRequest } from '@/types/ai';
+import { AiUsageType } from '@prisma/client';
 
 const router = Router();
 const aiService = new AiService();
+const aiUsageService = new AiUsageService();
 
 // 创建AI会话 - 新的标准端点
 router.post(
@@ -59,10 +62,21 @@ router.post(
       const { sessionId } = req.params;
       const { message } = req.body;
       
+      // Check usage limits before processing
+      await aiUsageService.checkUsageLimit(req.user!.id);
+      
       const response = await aiService.sendChatMessage(req.user!.id, {
         message,
         sessionId
       });
+      
+      // Track AI usage
+      await aiUsageService.trackUsage(
+        req.user!.id,
+        sessionId,
+        AiUsageType.chat,
+        1
+      );
       
       res.json({
         success: true,
@@ -132,7 +146,19 @@ router.post(
   async (req, res, next) => {
     try {
       const chatRequest: ChatRequest = req.body;
+      
+      // Check usage limits before processing
+      await aiUsageService.checkUsageLimit(req.user!.id);
+      
       const response = await aiService.sendChatMessage(req.user!.id, chatRequest);
+      
+      // Track AI usage
+      await aiUsageService.trackUsage(
+        req.user!.id,
+        chatRequest.sessionId || null,
+        AiUsageType.chat,
+        1
+      );
       
       res.json({
         success: true,
@@ -173,14 +199,10 @@ router.get(
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
-      const funnelId = req.query.funnelId as string;
-      const context = req.query.context as string;
       
       const sessions = await aiService.getUserSessions(req.user!.id, {
         page,
-        limit,
-        funnelId,
-        context
+        limit
       });
       
       res.json({
@@ -292,12 +314,23 @@ router.post(
     try {
       const analysisRequest: AnalysisRequest = req.body;
       
+      // Check usage limits before processing
+      await aiUsageService.checkUsageLimit(req.user!.id);
+      
       if (analysisRequest.timeRange) {
         analysisRequest.timeRange.startDate = new Date(analysisRequest.timeRange.startDate);
         analysisRequest.timeRange.endDate = new Date(analysisRequest.timeRange.endDate);
       }
       
       const analysis = await aiService.analyzeFunction(req.user!.id, analysisRequest);
+      
+      // Track AI usage
+      await aiUsageService.trackUsage(
+        req.user!.id,
+        null,
+        AiUsageType.analysis,
+        1
+      );
       
       res.json({
         success: true,
@@ -330,6 +363,9 @@ router.get(
   validateRequest,
   async (req, res, next) => {
     try {
+      // Check usage limits before processing
+      await aiUsageService.checkUsageLimit(req.user!.id);
+      
       const limit = parseInt(req.query.limit as string) || 5;
       const priority = req.query.priority as string;
       
@@ -337,6 +373,14 @@ router.get(
         req.params.funnelId,
         req.user!.id,
         { limit, priority }
+      );
+      
+      // Track AI usage
+      await aiUsageService.trackUsage(
+        req.user!.id,
+        null,
+        AiUsageType.recommendation,
+        1
       );
       
       res.json({
@@ -443,6 +487,20 @@ router.get('/stats', async (req, res, next) => {
     res.json({
       success: true,
       data: stats
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 获取用户AI使用限制和状态
+router.get('/usage-status', async (req, res, next) => {
+  try {
+    const usageStatus = await aiUsageService.getUserUsageStatus(req.user!.id);
+    res.json({
+      success: true,
+      data: usageStatus,
+      message: '获取AI使用状态成功'
     });
   } catch (error) {
     next(error);

@@ -1,0 +1,89 @@
+-- =============================================
+-- Pathfinder 开发共享数据库初始化脚本（PostgreSQL / psql）
+-- 用途：为其他开发者快速创建可用的数据库（含示例数据）
+-- 依赖：psql 客户端，PostgreSQL 13+
+-- 说明：该脚本会创建数据库，导入 schema 与示例数据，并设置账号/权限。
+--       默认会复用并加载 database/init.sql 作为权威 schema 来源。
+-- =============================================
+
+\set ON_ERROR_STOP on
+
+-- 可根据需要修改以下变量（运行前在命令行用 -v 覆盖亦可）
+\set DB_NAME       'pathfinder_dev'
+\set APP_USER      'pathfinder_app'
+\set APP_PASS      'app_dev_password_ChangeMe!'
+\set RO_USER       'pathfinder_readonly'
+\set RO_PASS       'readonly_dev_ChangeMe!'
+\set ANALYST_USER  'pathfinder_analyst'
+\set ANALYST_PASS  'analyst_dev_ChangeMe!'
+
+-- 1) 创建数据库（若不存在）。使用 \gexec 执行条件创建。
+SELECT format('CREATE DATABASE %I TEMPLATE template0 ENCODING ''UTF8''', :'DB_NAME')
+WHERE NOT EXISTS (
+  SELECT 1 FROM pg_database WHERE datname = :'DB_NAME'
+); \gexec
+
+-- 2) 连接到目标数据库
+\connect :DB_NAME
+
+-- 3) 启用常用扩展（幂等）
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- 4) 导入权威初始化脚本（包含表、索引、视图、函数与示例数据）
+\i database/init.sql
+
+-- 5) 创建/更新账户与权限（覆盖密码，确保外部开发者可用）
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = :APP_USER) THEN
+    EXECUTE format('CREATE USER %I WITH LOGIN PASSWORD %L;', :APP_USER, :APP_PASS);
+  ELSE
+    EXECUTE format('ALTER USER %I WITH PASSWORD %L;', :APP_USER, :APP_PASS);
+  END IF;
+
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = :RO_USER) THEN
+    EXECUTE format('CREATE USER %I WITH LOGIN PASSWORD %L;', :RO_USER, :RO_PASS);
+  ELSE
+    EXECUTE format('ALTER USER %I WITH PASSWORD %L;', :RO_USER, :RO_PASS);
+  END IF;
+
+  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = :ANALYST_USER) THEN
+    EXECUTE format('CREATE USER %I WITH LOGIN PASSWORD %L;', :ANALYST_USER, :ANALYST_PASS);
+  ELSE
+    EXECUTE format('ALTER USER %I WITH PASSWORD %L;', :ANALYST_USER, :ANALYST_PASS);
+  END IF;
+END$$;
+
+-- 6) 授权（确保账号权限到位）
+GRANT CONNECT ON DATABASE :"DB_NAME" TO :"APP_USER", :"RO_USER", :"ANALYST_USER";
+GRANT USAGE ON SCHEMA public TO :"APP_USER", :"RO_USER", :"ANALYST_USER";
+
+-- 应用账号：读写
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO :"APP_USER";
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO :"APP_USER";
+
+-- 只读账号：仅查询
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO :"RO_USER";
+
+-- 分析账号：读视图 + 只读
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO :"ANALYST_USER";
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'funnel_stats') THEN
+    EXECUTE 'GRANT SELECT ON funnel_stats, node_performance_analysis, ai_usage_stats, user_activity_summary TO ' || quote_ident(:ANALYST_USER) || ';';
+  END IF;
+END $$;
+
+-- 7) 新对象默认权限（便于后续迁移/新表）
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO :"APP_USER";
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT SELECT ON TABLES TO :"RO_USER", :"ANALYST_USER";
+
+-- 8) 提示连接字符串（注：请替换 <HOST>）
+-- 应用账号：postgresql://pathfinder_app:app_dev_password_ChangeMe!@<HOST>/:DB_NAME
+-- 只读账号：postgresql://pathfinder_readonly:readonly_dev_ChangeMe!@<HOST>/:DB_NAME
+-- 分析账号：postgresql://pathfinder_analyst:analyst_dev_ChangeMe!@<HOST>/:DB_NAME
+
+-- 完成
+\echo 'Pathfinder 共享数据库已初始化完成（数据库：' :DB_NAME ').'

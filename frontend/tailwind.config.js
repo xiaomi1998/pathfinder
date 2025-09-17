@@ -8,17 +8,17 @@ export default {
     extend: {
       colors: {
         primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
-          950: '#172554'
+          50: '#e6f7ff',
+          100: '#bae6fd',
+          200: '#7dd3fc',
+          300: '#38bdf8',
+          400: '#0ea5e9',
+          500: '#0052d9',
+          600: '#003db7',
+          700: '#1e40af',
+          800: '#1e3a8a',
+          900: '#172554',
+          950: '#0f1629'
         },
         secondary: {
           50: '#f8fafc',
@@ -74,7 +74,7 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+        sans: ['PingFang SC', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'ui-sans-serif', 'system-ui'],
         mono: ['JetBrains Mono', 'ui-monospace', 'monospace']
       },
       spacing: {
@@ -110,11 +110,18 @@ export default {
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))'
+        'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+        'gradient-pathfinder': 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+        'gradient-primary': 'linear-gradient(90deg, #0052d9 0%, #366ef4 100%)',
+        'gradient-hero': 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #4A90E2 50%, #357ABD 75%, #1e3c72 100%)'
       },
       boxShadow: {
         'inner-lg': 'inset 0 2px 8px 0 rgb(0 0 0 / 0.06)',
-        'glow': '0 0 20px -5px rgb(59 130 246 / 0.5)'
+        'glow': '0 0 20px -5px rgb(59 130 246 / 0.5)',
+        'card': '0 4px 12px rgba(0, 0, 0, 0.08)',
+        'card-hover': '0 8px 24px rgba(0, 0, 0, 0.12)',
+        'pathfinder': '0 8px 32px rgba(0, 0, 0, 0.1)',
+        'pathfinder-hover': '0 16px 48px rgba(0, 0, 0, 0.15)'
       }
     }
   },

@@ -1,7 +1,12 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
-      <div>
+  <div class="min-h-screen flex bg-gray-50 dark:bg-gray-900">
+    <!-- Left Side Panel -->
+    <AuthSidePanel />
+    
+    <!-- Right Side Form -->
+    <div class="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-md w-full space-y-8">
+        <div>
         <router-link to="/" class="flex justify-center items-center space-x-3">
           <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center">
             <span class="text-white font-bold text-xl">P</span>
@@ -20,9 +25,9 @@
             点击登录
           </router-link>
         </p>
-      </div>
+        </div>
 
-      <form class="mt-8 space-y-6" @submit.prevent="handleSubmit">
+        <form class="mt-8 space-y-6" @submit.prevent="handleSubmit">
         <div class="space-y-4">
           <div>
             <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -49,27 +54,59 @@
           </div>
 
           <div>
-            <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              邮箱地址
+            <label for="phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              手机号码
             </label>
             <div class="mt-1">
               <input
-                id="email"
-                v-model="form.email"
-                name="email"
-                type="email"
-                autocomplete="email"
+                id="phone"
+                v-model="form.phone"
+                name="phone"
+                type="tel"
+                autocomplete="tel"
                 required
                 class="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm dark:bg-gray-800"
                 :class="{
-                  'border-red-300 focus:border-red-500 focus:ring-red-500': errors.email
+                  'border-red-300 focus:border-red-500 focus:ring-red-500': errors.phone
                 }"
-                placeholder="请输入您的邮箱"
+                placeholder="请输入您的手机号码"
               />
-              <p v-if="errors.email" class="mt-2 text-sm text-red-600 dark:text-red-400">
-                {{ errors.email }}
+              <p v-if="errors.phone" class="mt-2 text-sm text-red-600 dark:text-red-400">
+                {{ errors.phone }}
               </p>
             </div>
+          </div>
+
+          <div>
+            <label for="verificationCode" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              验证码
+            </label>
+            <div class="mt-1 flex space-x-2">
+              <input
+                id="verificationCode"
+                v-model="form.verificationCode"
+                name="verificationCode"
+                type="text"
+                maxlength="6"
+                required
+                class="appearance-none relative block flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm dark:bg-gray-800"
+                :class="{
+                  'border-red-300 focus:border-red-500 focus:ring-red-500': errors.verificationCode
+                }"
+                placeholder="请输入验证码"
+              />
+              <button
+                type="button"
+                :disabled="!form.phone || codeSent || countdown > 0"
+                @click="sendVerificationCode"
+                class="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+              >
+                {{ countdown > 0 ? `${countdown}s后重发` : (codeSent ? '重发验证码' : '发送验证码') }}
+              </button>
+            </div>
+            <p v-if="errors.verificationCode" class="mt-2 text-sm text-red-600 dark:text-red-400">
+              {{ errors.verificationCode }}
+            </p>
           </div>
 
           <div>
@@ -98,10 +135,10 @@
                 <EyeIcon v-if="showPassword" class="h-5 w-5 text-gray-400" />
                 <EyeSlashIcon v-else class="h-5 w-5 text-gray-400" />
               </button>
-              <p v-if="errors.password" class="mt-2 text-sm text-red-600 dark:text-red-400">
-                {{ errors.password }}
-              </p>
             </div>
+            <p v-if="errors.password" class="mt-2 text-sm text-red-600 dark:text-red-400">
+              {{ errors.password }}
+            </p>
           </div>
 
           <div>
@@ -198,7 +235,8 @@
             </div>
           </div>
         </div>
-      </form>
+        </form>
+      </div>
     </div>
   </div>
 </template>
@@ -211,6 +249,7 @@ import { useAuthStore } from '@stores/auth'
 import { useAppStore } from '@stores/app'
 import LoadingSpinner from '@components/common/LoadingSpinner.vue'
 import ErrorAlert from '@components/common/ErrorAlert.vue'
+import AuthSidePanel from '@components/auth/AuthSidePanel.vue'
 import { getErrorIcon, getErrorColorClass, type ErrorInfo } from '@/utils/errorHandler'
 
 const router = useRouter()
@@ -223,7 +262,8 @@ const error = ref<ErrorInfo | null>(null)
 
 const form = reactive({
   name: '',
-  email: '',
+  phone: '',
+  verificationCode: '',
   password: '',
   confirmPassword: '',
   agreeToTerms: false
@@ -231,14 +271,19 @@ const form = reactive({
 
 const errors = reactive({
   name: '',
-  email: '',
+  phone: '',
+  verificationCode: '',
   password: '',
   confirmPassword: ''
 })
 
+const codeSent = ref(false)
+const countdown = ref(0)
+
 const validateForm = () => {
   errors.name = ''
-  errors.email = ''
+  errors.phone = ''
+  errors.verificationCode = ''
   errors.password = ''
   errors.confirmPassword = ''
   
@@ -246,10 +291,16 @@ const validateForm = () => {
     errors.name = '姓名为必填项'
   }
   
-  if (!form.email) {
-    errors.email = '邮箱为必填项'
-  } else if (!/\S+@\S+\.\S+/.test(form.email)) {
-    errors.email = '请输入有效的邮箱地址'
+  if (!form.phone) {
+    errors.phone = '手机号为必填项'
+  } else if (!/^1[3-9]\d{9}$/.test(form.phone)) {
+    errors.phone = '请输入有效的手机号码'
+  }
+  
+  if (!form.verificationCode) {
+    errors.verificationCode = '验证码为必填项'
+  } else if (!/^\d{6}$/.test(form.verificationCode)) {
+    errors.verificationCode = '验证码必须为6位数字'
   }
   
   if (!form.password) {
@@ -266,7 +317,7 @@ const validateForm = () => {
     errors.confirmPassword = '两次输入的密码不一致'
   }
   
-  return !errors.name && !errors.email && !errors.password && !errors.confirmPassword
+  return !errors.name && !errors.phone && !errors.verificationCode && !errors.password && !errors.confirmPassword
 }
 
 const handleSubmit = async () => {
@@ -278,7 +329,8 @@ const handleSubmit = async () => {
     
     const result = await authStore.register({
       name: form.name.trim(),
-      email: form.email,
+      phone: form.phone,
+      verification_code: form.verificationCode,
       password: form.password,
       password_confirmation: form.confirmPassword,
       terms_accepted: form.agreeToTerms
@@ -286,7 +338,8 @@ const handleSubmit = async () => {
     
     if (result.success) {
       appStore.showSuccess('欢迎来到 Pathfinder！', '您的账户已成功创建。')
-      router.push('/dashboard')
+      // Redirect to onboarding to complete setup
+      router.push('/onboarding')
     } else {
       error.value = result.errorInfo || {
         type: 'unknown',
@@ -310,5 +363,39 @@ const handleSubmit = async () => {
 const retryRegister = () => {
   error.value = null
   handleSubmit()
+}
+
+const sendVerificationCode = async () => {
+  if (!form.phone) {
+    errors.phone = '请先输入手机号码'
+    return
+  }
+  
+  if (!/^1[3-9]\d{9}$/.test(form.phone)) {
+    errors.phone = '请输入有效的手机号码'
+    return
+  }
+  
+  try {
+    // TODO: 调用发送验证码API
+    console.log('发送验证码到:', form.phone)
+    
+    // 模拟发送成功
+    codeSent.value = true
+    countdown.value = 60
+    
+    // 倒计时
+    const timer = setInterval(() => {
+      countdown.value--
+      if (countdown.value <= 0) {
+        clearInterval(timer)
+        countdown.value = 0
+      }
+    }, 1000)
+    
+    appStore.showSuccess('验证码已发送', `验证码已发送至 ${form.phone}`)
+  } catch (err: any) {
+    appStore.showError('发送失败', err.message || '验证码发送失败，请稍后重试')
+  }
 }
 </script>

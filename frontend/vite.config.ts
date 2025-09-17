@@ -29,13 +29,14 @@ export default defineConfig({
     }
   },
   server: {
-    port: 3000,
-    host: '0.0.0.0',
+    port: 8080,
+    host: '0.0.0.0', // 明确指定监听所有接口
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://127.0.0.1:3001', // 使用127.0.0.1确保本地访问
         changeOrigin: true,
-        secure: false
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, '/api')
       }
     }
   },

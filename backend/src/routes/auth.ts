@@ -95,6 +95,29 @@ router.post('/refresh', async (req: Request, res: Response, next: NextFunction) 
   }
 });
 
+// 获取当前用户信息路由
+router.get('/me', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const token = req.cookies.token || req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: '未提供令牌'
+      });
+    }
+    
+    const result = await authService.verifyToken(token);
+    res.json({
+      success: true,
+      data: result,
+      message: '获取用户信息成功'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // 验证令牌路由
 router.get('/verify', async (req: Request, res: Response, next: NextFunction) => {
   try {

@@ -31,6 +31,8 @@ export const useAppStore = defineStore('app', () => {
 
   const toggleDarkMode = () => {
     isDarkMode.value = !isDarkMode.value
+    // 当手动切换时，设置为明确的主题模式而非auto
+    currentTheme.value = isDarkMode.value ? 'dark' : 'light'
     updateTheme()
   }
 
@@ -45,6 +47,10 @@ export const useAppStore = defineStore('app', () => {
     if (currentTheme.value === 'auto') {
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
       isDarkMode.value = prefersDark
+    } else if (currentTheme.value === 'dark') {
+      isDarkMode.value = true
+    } else if (currentTheme.value === 'light') {
+      isDarkMode.value = false
     }
     
     if (isDarkMode.value) {
@@ -127,12 +133,10 @@ export const useAppStore = defineStore('app', () => {
 
   const initializeApp = () => {
     // Load theme preference
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | 'auto' || 'auto'
-    const savedDarkMode = localStorage.getItem('darkMode') === 'true'
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | 'auto' || 'light'
     const savedSidebarState = localStorage.getItem('sidebarCollapsed') === 'true'
     
     currentTheme.value = savedTheme
-    isDarkMode.value = savedDarkMode
     sidebarCollapsed.value = savedSidebarState
     
     updateTheme()

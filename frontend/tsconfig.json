@@ -39,6 +39,7 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
+    "allowJs": true,
     "declaration": false,
     "declarationMap": false,
     "sourceMap": true

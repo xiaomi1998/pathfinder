@@ -1,10 +1,5 @@
-// Pathfinder 项目 Prisma Schema
-// 版本: 2.0 - 缩小版优化设计
-// 数据库: PostgreSQL
-// 特性: 完整约束、优化索引、数据验证、关系完整性
-
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
@@ -13,74 +8,648 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 数据库级函数和扩展
-// 需要在数据库初始化时执行：
-// CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-// CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+model Industry {
+  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code          String         @unique @db.VarChar(50)
+  name          String         @db.VarChar(100)
+  nameEn        String?        @map("name_en") @db.VarChar(100)
+  description   String?
+  isActive      Boolean        @default(true) @map("is_active")
+  sortOrder     Int            @default(0) @map("sort_order")
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  organizations Organization[]
 
-// ==============================================
-// 用户账户模型
-// ==============================================
+  @@index([code])
+  @@index([isActive])
+  @@index([sortOrder])
+  @@map("industries")
+}
+
+model Organization {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String           @db.VarChar(100)
+  slug            String           @unique @db.VarChar(50)
+  description     String?
+  industryId      String?          @map("industry_id") @db.Uuid
+  companySize     CompanySize?     @map("company_size")
+  location        String?          @db.VarChar(100)
+  salesModel      SalesModel?      @map("sales_model")
+  planType        String           @default("free") @map("plan_type") @db.VarChar(20)
+  isActive        Boolean          @default(true) @map("is_active")
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  adviceRules     AdviceRule[]
+  benchmarkData   BenchmarkData[]
+  funnelInstances FunnelInstance[]
+  funnelTemplates FunnelTemplate[]
+  funnels         Funnel[]
+  metricDatasets  MetricDataset[]
+  usageLimit      OrgUsageLimit?
+  industry        Industry?        @relation(fields: [industryId], references: [id])
+  users           User[]
+
+  @@index([slug])
+  @@index([planType])
+  @@index([isActive])
+  @@index([createdAt])
+  @@index([industryId])
+  @@index([companySize])
+  @@index([salesModel])
+  @@map("organizations")
+}
+
 model User {
-  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  username      String    @unique @db.VarChar(50)
-  email         String    @unique @db.VarChar(255)
-  passwordHash  String    @map("password_hash") @db.VarChar(255)
-  firstName     String?   @map("first_name") @db.VarChar(50)
-  lastName      String?   @map("last_name") @db.VarChar(50)
-  avatar        String?   @db.VarChar(500)
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
-  lastLoginAt   DateTime? @map("last_login_at") @db.Timestamptz(6)
-  isActive      Boolean   @default(true) @map("is_active")
-  isEmailVerified Boolean @default(false) @map("is_email_verified")
+  id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  username        String             @unique @db.VarChar(50)
+  email           String?            @unique @db.VarChar(255)
+  phone           String?            @unique @db.VarChar(20)
+  passwordHash    String             @map("password_hash") @db.VarChar(255)
+  firstName       String?            @map("first_name") @db.VarChar(50)
+  lastName        String?            @map("last_name") @db.VarChar(50)
+  avatar          String?            @db.VarChar(500)
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  lastLoginAt     DateTime?          @map("last_login_at") @db.Timestamptz(6)
+  isActive        Boolean            @default(true) @map("is_active")
+  isEmailVerified Boolean            @default(false) @map("is_email_verified")
+  organizationId  String?            @map("organization_id") @db.Uuid
+  role            UserRole           @default(member)
+  analysisQuota   Int                @default(10) @map("analysis_quota")
+  adviceRules     AdviceRule[]
+  aiAnalyses      AiAnalysis[]
+  aiReports       AiAnalysisReport[]
+  aiSessions      AiSession[]
+  funnelInstances FunnelInstance[]
+  funnelTemplates FunnelTemplate[]
+  funnels         Funnel[]
+  metricDatasets  MetricDataset[]
+  aiLimit         UserAiLimit?
+  aiUsage         UserAiUsage[]
+  organization    Organization?      @relation(fields: [organizationId], references: [id])
 
-  // 关联关系
-  funnels     Funnel[]
-  aiSessions  AiSession[]
-
-  @@map("users")
   @@index([email])
+  @@index([phone])
   @@index([username])
+  @@index([organizationId])
+  @@index([role])
   @@index([createdAt])
   @@index([lastLoginAt])
   @@index([isActive])
-  // 全文搜索索引
   @@index([username, firstName, lastName])
+  @@map("users")
 }
 
-// ==============================================
-// 漏斗模型
-// ==============================================
 model Funnel {
-  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId      String       @map("user_id") @db.Uuid
-  name        String       @db.VarChar(100)
-  description String?      @db.Text
-  canvasData  Json?        @map("canvas_data") @db.JsonB
-  status      FunnelStatus @default(active)
-  isTemplate  Boolean      @default(false) @map("is_template")
-  tags        String[]     @default([])
-  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String             @map("user_id") @db.Uuid
+  name            String             @db.VarChar(100)
+  description     String?
+  canvasData      Json?              @map("canvas_data")
+  status          FunnelStatus       @default(active)
+  isTemplate      Boolean            @default(false) @map("is_template")
+  dataPeriod      DataPeriod         @default(DAILY) @map("data_period")
+  tags            String[]           @default([])
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  organizationId  String?            @map("organization_id") @db.Uuid
+  aiAnalyses      AiAnalysis[]
+  aiReports       AiAnalysisReport[]
+  aiSessions      AiSession[]
+  edges           Edge[]
+  funnelInstances FunnelInstance[]
+  funnelMetrics   FunnelMetrics[]
+  organization    Organization?      @relation(fields: [organizationId], references: [id])
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nodes           Node[]
 
-  // 关联关系
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  nodes      Node[]
-  edges      Edge[]
-  aiSessions AiSession[]
-
-  @@map("funnels")
   @@index([userId])
+  @@index([organizationId])
   @@index([createdAt])
   @@index([name])
   @@index([status])
   @@index([isTemplate])
   @@index([tags])
   @@index([userId, status])
+  @@index([organizationId, status])
+  @@map("funnels")
 }
 
-// 漏斗状态枚举
+model Node {
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  funnelId    String        @map("funnel_id") @db.Uuid
+  nodeType    NodeType      @map("node_type")
+  label       String        @default("新节点") @db.VarChar(30)
+  positionX   Decimal       @map("position_x") @db.Decimal(10, 2)
+  positionY   Decimal       @map("position_y") @db.Decimal(10, 2)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  sourceEdges Edge[]        @relation("SourceNode")
+  targetEdges Edge[]        @relation("TargetNode")
+  nodeData    NodeData[]
+  nodeMetrics NodeMetrics[]
+  funnel      Funnel        @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+
+  @@index([funnelId])
+  @@index([nodeType])
+  @@index([positionX, positionY])
+  @@map("nodes")
+}
+
+model Edge {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  funnelId     String   @map("funnel_id") @db.Uuid
+  sourceNodeId String   @map("source_node_id") @db.Uuid
+  targetNodeId String   @map("target_node_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  funnel       Funnel   @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+  sourceNode   Node     @relation("SourceNode", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNode   Node     @relation("TargetNode", fields: [targetNodeId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceNodeId, targetNodeId])
+  @@index([funnelId])
+  @@index([sourceNodeId])
+  @@index([targetNodeId])
+  @@index([sourceNodeId, targetNodeId])
+  @@map("edges")
+}
+
+model NodeData {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nodeId         String   @map("node_id") @db.Uuid
+  weekStartDate  DateTime @map("week_start_date") @db.Date
+  entryCount     Int      @default(0) @map("entry_count")
+  convertedCount Int      @default(0) @map("converted_count")
+  conversionRate Decimal? @map("conversion_rate") @db.Decimal(5, 4)
+  bounceCount    Int?     @default(0) @map("bounce_count")
+  avgTimeSpent   Int?     @map("avg_time_spent")
+  revenue        Decimal? @db.Decimal(12, 2)
+  cost           Decimal? @db.Decimal(12, 2)
+  notes          String?
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  node           Node     @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@unique([nodeId, weekStartDate])
+  @@index([nodeId])
+  @@index([weekStartDate])
+  @@index([createdAt])
+  @@index([conversionRate])
+  @@index([revenue])
+  @@index([nodeId, weekStartDate, conversionRate])
+  @@map("node_data")
+}
+
+model FunnelMetrics {
+  id                    String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  funnelId              String           @map("funnel_id") @db.Uuid
+  periodType            MetricPeriodType @map("period_type")
+  periodStartDate       DateTime         @map("period_start_date") @db.Date
+  periodEndDate         DateTime         @map("period_end_date") @db.Date
+  totalEntries          Int              @default(0) @map("total_entries")
+  totalConversions      Int              @default(0) @map("total_conversions")
+  overallConversionRate Decimal?         @map("overall_conversion_rate") @db.Decimal(5, 4)
+  totalRevenue          Decimal?         @map("total_revenue") @db.Decimal(12, 2)
+  totalCost             Decimal?         @map("total_cost") @db.Decimal(12, 2)
+  roi                   Decimal?         @db.Decimal(8, 4)
+  avgTimeSpent          Int?             @map("avg_time_spent")
+  bounceRate            Decimal?         @map("bounce_rate") @db.Decimal(5, 4)
+  notes                 String?
+  customMetrics         Json?            @map("custom_metrics")
+  createdAt             DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  funnel                Funnel           @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+
+  @@unique([funnelId, periodType, periodStartDate])
+  @@index([funnelId])
+  @@index([periodType])
+  @@index([periodStartDate, periodEndDate])
+  @@index([createdAt])
+  @@index([overallConversionRate])
+  @@index([totalRevenue])
+  @@index([funnelId, periodType, periodStartDate])
+  @@map("funnel_metrics")
+}
+
+model NodeMetrics {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nodeId          String           @map("node_id") @db.Uuid
+  periodType      MetricPeriodType @map("period_type")
+  periodStartDate DateTime         @map("period_start_date") @db.Date
+  periodEndDate   DateTime         @map("period_end_date") @db.Date
+  entryCount      Int              @default(0) @map("entry_count")
+  exitCount       Int              @default(0) @map("exit_count")
+  convertedCount  Int              @default(0) @map("converted_count")
+  conversionRate  Decimal?         @map("conversion_rate") @db.Decimal(5, 4)
+  bounceCount     Int?             @default(0) @map("bounce_count")
+  avgTimeSpent    Int?             @map("avg_time_spent")
+  revenue         Decimal?         @db.Decimal(12, 2)
+  cost            Decimal?         @db.Decimal(12, 2)
+  impressions     Int?             @default(0)
+  clicks          Int?             @default(0)
+  ctr             Decimal?         @db.Decimal(5, 4)
+  cpc             Decimal?         @db.Decimal(8, 4)
+  cpm             Decimal?         @db.Decimal(8, 4)
+  notes           String?
+  customMetrics   Json?            @map("custom_metrics")
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  node            Node             @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@unique([nodeId, periodType, periodStartDate])
+  @@index([nodeId])
+  @@index([periodType])
+  @@index([periodStartDate, periodEndDate])
+  @@index([createdAt])
+  @@index([conversionRate])
+  @@index([revenue])
+  @@index([nodeId, periodType, periodStartDate])
+  @@map("node_metrics")
+}
+
+model AiSession {
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String          @map("user_id") @db.Uuid
+  funnelId       String?         @map("funnel_id") @db.Uuid
+  sessionContext SessionContext? @map("session_context")
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  endedAt        DateTime?       @map("ended_at") @db.Timestamptz(6)
+  messages       AiMessage[]
+  funnel         Funnel?         @relation(fields: [funnelId], references: [id])
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usage          UserAiUsage[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([funnelId])
+  @@index([sessionContext])
+  @@map("ai_sessions")
+}
+
+model AiMessage {
+  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId String      @map("session_id") @db.Uuid
+  role      MessageRole
+  content   String
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  session   AiSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([createdAt])
+  @@index([role])
+  @@map("ai_messages")
+}
+
+model FunnelTemplate {
+  id             String       @id @default(cuid())
+  name           String       @db.VarChar(100)
+  description    String?
+  templateData   Json         @map("template_data")
+  isDefault      Boolean      @default(false) @map("is_default")
+  organizationId String       @map("organization_id") @db.Uuid
+  createdBy      String       @map("created_by") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  creator        User         @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([createdBy])
+  @@index([isDefault])
+  @@index([createdAt])
+  @@index([name])
+  @@index([organizationId, isDefault])
+  @@map("funnel_templates")
+}
+
+model MetricDataset {
+  id             String       @id @default(cuid())
+  name           String       @db.VarChar(100)
+  datasetType    String       @map("dataset_type") @db.VarChar(50)
+  dataSource     String       @map("data_source") @db.VarChar(50)
+  config         Json
+  organizationId String       @map("organization_id") @db.Uuid
+  createdBy      String       @map("created_by") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  creator        User         @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([createdBy])
+  @@index([datasetType])
+  @@index([dataSource])
+  @@index([createdAt])
+  @@index([organizationId, datasetType])
+  @@map("metric_datasets")
+}
+
+model BenchmarkData {
+  id             String       @id @default(cuid())
+  industry       String       @db.VarChar(100)
+  metricType     String       @map("metric_type") @db.VarChar(100)
+  metricName     String       @map("metric_name") @db.VarChar(100)
+  value          Decimal      @db.Decimal(12, 6)
+  percentile     Int
+  sampleSize     Int          @map("sample_size")
+  periodStart    DateTime     @map("period_start") @db.Date
+  periodEnd      DateTime     @map("period_end") @db.Date
+  organizationId String       @map("organization_id") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([industry, metricType, metricName, percentile, periodStart, periodEnd])
+  @@index([organizationId])
+  @@index([industry])
+  @@index([metricType])
+  @@index([metricName])
+  @@index([percentile])
+  @@index([periodStart, periodEnd])
+  @@index([industry, metricType, metricName])
+  @@map("benchmark_data")
+}
+
+model AdviceRule {
+  id             String       @id @default(cuid())
+  name           String       @db.VarChar(100)
+  description    String?
+  ruleType       String       @map("rule_type") @db.VarChar(50)
+  conditions     Json
+  advice         Json
+  priority       Int          @default(1)
+  isActive       Boolean      @default(true) @map("is_active")
+  organizationId String       @map("organization_id") @db.Uuid
+  createdBy      String       @map("created_by") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  creator        User         @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([createdBy])
+  @@index([ruleType])
+  @@index([priority])
+  @@index([isActive])
+  @@index([organizationId, ruleType, isActive])
+  @@map("advice_rules")
+}
+
+model OrgUsageLimit {
+  id               String       @id @default(cuid())
+  organizationId   String       @unique @map("organization_id") @db.Uuid
+  maxFunnels       Int          @default(10) @map("max_funnels")
+  maxTemplates     Int          @default(5) @map("max_templates")
+  maxInstances     Int          @default(50) @map("max_instances")
+  maxUsers         Int          @default(5) @map("max_users")
+  currentFunnels   Int          @default(0) @map("current_funnels")
+  currentTemplates Int          @default(0) @map("current_templates")
+  currentInstances Int          @default(0) @map("current_instances")
+  currentUsers     Int          @default(0) @map("current_users")
+  planType         String       @default("free") @map("plan_type") @db.VarChar(20)
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([planType])
+  @@index([currentFunnels])
+  @@index([currentTemplates])
+  @@index([currentInstances])
+  @@index([currentUsers])
+  @@map("org_usage_limits")
+}
+
+model AdminUser {
+  id            String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  username      String              @unique @db.VarChar(50)
+  email         String?             @unique @db.VarChar(255)
+  passwordHash  String              @map("password_hash") @db.VarChar(255)
+  firstName     String?             @map("first_name") @db.VarChar(50)
+  lastName      String?             @map("last_name") @db.VarChar(50)
+  role          AdminRole           @default(admin)
+  isActive      Boolean             @default(true) @map("is_active")
+  createdAt     DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+  lastLoginAt   DateTime?           @map("last_login_at") @db.Timestamptz(6)
+  operationLogs AdminOperationLog[]
+
+  @@index([email])
+  @@index([username])
+  @@index([role])
+  @@index([isActive])
+  @@map("admin_users")
+}
+
+model UserAiUsage {
+  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String      @map("user_id") @db.Uuid
+  sessionId    String?     @map("session_id") @db.Uuid
+  usageType    AiUsageType @map("usage_type")
+  requestCount Int         @default(1) @map("request_count")
+  tokenCount   Int?        @map("token_count")
+  cost         Decimal?    @db.Decimal(10, 4)
+  usageDate    DateTime    @map("usage_date") @db.Date
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  aiSession    AiSession?  @relation(fields: [sessionId], references: [id])
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([usageDate])
+  @@index([usageType])
+  @@index([userId, usageDate])
+  @@index([usageDate, usageType])
+  @@map("user_ai_usage")
+}
+
+model UserAiLimit {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String   @unique @map("user_id") @db.Uuid
+  dailyLimit       Int      @default(100) @map("daily_limit")
+  monthlyLimit     Int      @default(3000) @map("monthly_limit")
+  currentDaily     Int      @default(0) @map("current_daily")
+  currentMonthly   Int      @default(0) @map("current_monthly")
+  isActive         Boolean  @default(true) @map("is_active")
+  lastResetDaily   DateTime @default(now()) @map("last_reset_daily") @db.Date
+  lastResetMonthly DateTime @default(now()) @map("last_reset_monthly") @db.Date
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isActive])
+  @@index([lastResetDaily])
+  @@index([lastResetMonthly])
+  @@map("user_ai_limits")
+}
+
+model AdminOperationLog {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  adminId    String    @map("admin_id") @db.Uuid
+  targetType String    @map("target_type") @db.VarChar(50)
+  targetId   String?   @map("target_id") @db.Uuid
+  operation  String    @db.VarChar(100)
+  oldValues  Json?     @map("old_values")
+  newValues  Json?     @map("new_values")
+  result     String?   @db.VarChar(20)
+  ipAddress  String?   @map("ip_address") @db.VarChar(45)
+  userAgent  String?   @map("user_agent")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  admin      AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([targetType])
+  @@index([targetId])
+  @@index([createdAt])
+  @@index([result])
+  @@map("admin_operation_logs")
+}
+
+model AuditLog {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tableName String    @map("table_name") @db.VarChar(50)
+  operation Operation
+  oldValues Json?     @map("old_values")
+  newValues Json?     @map("new_values")
+  userId    String?   @map("user_id") @db.Uuid
+  timestamp DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([tableName])
+  @@index([timestamp])
+  @@index([userId])
+  @@index([operation])
+  @@map("audit_log")
+}
+
+model FunnelInstance {
+  id               String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String                  @db.VarChar(150)
+  description      String?
+  funnelTemplateId String                  @map("funnel_template_id") @db.Uuid
+  userId           String                  @map("user_id") @db.Uuid
+  organizationId   String?                 @map("organization_id") @db.Uuid
+  status           FunnelInstanceStatus    @default(draft)
+  periodStartDate  DateTime?               @map("period_start_date") @db.Date
+  periodEndDate    DateTime?               @map("period_end_date") @db.Date
+  instanceData     Json?                   @map("instance_data")
+  tags             String[]                @default([])
+  notes            String?
+  isActive         Boolean                 @default(true) @map("is_active")
+  completedAt      DateTime?               @map("completed_at") @db.Timestamptz(6)
+  createdAt        DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime                @updatedAt @map("updated_at") @db.Timestamptz(6)
+  instanceMetrics  FunnelInstanceMetrics[]
+  funnelTemplate   Funnel                  @relation(fields: [funnelTemplateId], references: [id], onDelete: Cascade)
+  organization     Organization?           @relation(fields: [organizationId], references: [id])
+  user             User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([funnelTemplateId])
+  @@index([userId])
+  @@index([organizationId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([periodStartDate, periodEndDate])
+  @@index([isActive])
+  @@index([tags])
+  @@index([funnelTemplateId, status])
+  @@index([userId, status])
+  @@index([organizationId, status])
+  @@map("funnel_instances")
+}
+
+model FunnelInstanceMetrics {
+  id                    String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  instanceId            String           @map("instance_id") @db.Uuid
+  periodType            MetricPeriodType @map("period_type")
+  periodStartDate       DateTime         @map("period_start_date") @db.Date
+  periodEndDate         DateTime         @map("period_end_date") @db.Date
+  totalEntries          Int              @default(0) @map("total_entries")
+  totalConversions      Int              @default(0) @map("total_conversions")
+  overallConversionRate Decimal?         @map("overall_conversion_rate") @db.Decimal(5, 4)
+  totalRevenue          Decimal?         @map("total_revenue") @db.Decimal(12, 2)
+  totalCost             Decimal?         @map("total_cost") @db.Decimal(12, 2)
+  roi                   Decimal?         @db.Decimal(8, 4)
+  avgTimeSpent          Int?             @map("avg_time_spent")
+  bounceRate            Decimal?         @map("bounce_rate") @db.Decimal(5, 4)
+  notes                 String?
+  customMetrics         Json?            @map("custom_metrics")
+  createdAt             DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  instance              FunnelInstance   @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
+  @@unique([instanceId, periodType, periodStartDate])
+  @@index([instanceId])
+  @@index([periodType])
+  @@index([periodStartDate, periodEndDate])
+  @@index([createdAt])
+  @@index([overallConversionRate])
+  @@index([totalRevenue])
+  @@index([instanceId, periodType, periodStartDate])
+  @@map("funnel_instance_metrics")
+}
+
+model AiAnalysis {
+  id        String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String             @map("user_id") @db.Uuid
+  funnelId  String             @map("funnel_id") @db.Uuid
+  step      Int                @map("step")
+  parentId  String?            @map("parent_id") @db.Uuid
+  input     Json               @map("input")
+  output    Json               @map("output")
+  status    String             @default("completed") @map("status")
+  createdAt DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  funnel    Funnel             @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+  parent    AiAnalysis?        @relation("AnalysisChain", fields: [parentId], references: [id])
+  children  AiAnalysis[]       @relation("AnalysisChain")
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reports   AiAnalysisReport[]
+
+  @@index([userId])
+  @@index([funnelId])
+  @@index([step])
+  @@index([parentId])
+  @@map("ai_analyses")
+}
+
+model AiAnalysisReport {
+  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String     @map("user_id") @db.Uuid
+  funnelId   String     @map("funnel_id") @db.Uuid
+  analysisId String     @map("analysis_id") @db.Uuid
+  reportType String     @map("report_type")
+  strategy           String?   @map("strategy")
+  content            Json      @map("content")
+  datasetPeriodStart DateTime? @map("dataset_period_start") @db.Timestamptz(6)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  analysis   AiAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  funnel     Funnel     @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([funnelId])
+  @@index([analysisId])
+  @@index([reportType])
+  @@index([datasetPeriodStart])
+  @@index([funnelId, datasetPeriodStart])
+  @@map("ai_analysis_reports")
+}
+
+enum UserRole {
+  owner
+  admin
+  member
+
+  @@map("user_role")
+}
+
+enum MetricPeriodType {
+  weekly
+  monthly
+
+  @@map("metric_period_type")
+}
+
 enum FunnelStatus {
   active
   archived
@@ -89,32 +658,14 @@ enum FunnelStatus {
   @@map("funnel_status")
 }
 
-// ==============================================
-// 节点模型
-// ==============================================
-model Node {
-  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  funnelId  String    @map("funnel_id") @db.Uuid
-  nodeType  NodeType  @map("node_type")
-  label     String    @default("新节点") @db.VarChar(30)
-  positionX Decimal   @map("position_x") @db.Decimal(10, 2)
-  positionY Decimal   @map("position_y") @db.Decimal(10, 2)
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+enum DataPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
 
-  // 关联关系
-  funnel       Funnel     @relation(fields: [funnelId], references: [id], onDelete: Cascade)
-  nodeData     NodeData[]
-  sourceEdges  Edge[]     @relation("SourceNode")
-  targetEdges  Edge[]     @relation("TargetNode")
-
-  @@map("nodes")
-  @@index([funnelId])
-  @@index([nodeType])
-  @@index([positionX, positionY])
+  @@map("data_period")
 }
 
-// 节点类型枚举
 enum NodeType {
   awareness
   acquisition
@@ -125,88 +676,6 @@ enum NodeType {
   @@map("node_type")
 }
 
-// ==============================================
-// 边（连接）模型
-// ==============================================
-model Edge {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  funnelId     String   @map("funnel_id") @db.Uuid
-  sourceNodeId String   @map("source_node_id") @db.Uuid
-  targetNodeId String   @map("target_node_id") @db.Uuid
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  // 关联关系
-  funnel     Funnel @relation(fields: [funnelId], references: [id], onDelete: Cascade)
-  sourceNode Node   @relation("SourceNode", fields: [sourceNodeId], references: [id], onDelete: Cascade)
-  targetNode Node   @relation("TargetNode", fields: [targetNodeId], references: [id], onDelete: Cascade)
-
-  @@unique([sourceNodeId, targetNodeId])
-  @@map("edges")
-  @@index([funnelId])
-  @@index([sourceNodeId])
-  @@index([targetNodeId])
-  @@index([sourceNodeId, targetNodeId])
-}
-
-// ==============================================
-// 节点数据模型
-// ==============================================
-model NodeData {
-  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  nodeId         String   @map("node_id") @db.Uuid
-  weekStartDate  DateTime @map("week_start_date") @db.Date
-  entryCount     Int      @default(0) @map("entry_count")
-  convertedCount Int      @default(0) @map("converted_count")
-  conversionRate Decimal? @map("conversion_rate") @db.Decimal(5, 4)
-  // 扩展字段用于更详细的分析
-  bounceCount    Int?     @default(0) @map("bounce_count") // 跳出数量
-  avgTimeSpent   Int?     @map("avg_time_spent") // 平均停留时间(秒)
-  revenue        Decimal? @db.Decimal(12, 2) // 收入金额
-  cost           Decimal? @db.Decimal(12, 2) // 成本
-  notes          String?  @db.Text // 备注
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
-
-  // 关联关系
-  node Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
-
-  @@unique([nodeId, weekStartDate])
-  @@map("node_data")
-  @@index([nodeId])
-  @@index([weekStartDate])
-  @@index([createdAt])
-  @@index([conversionRate])
-  @@index([revenue])
-  @@index([nodeId, weekStartDate, conversionRate])
-
-  // 数据验证约束 (在应用层处理)
-  // entryCount >= 0 AND convertedCount >= 0 AND convertedCount <= entryCount
-}
-
-// ==============================================
-// AI 会话模型
-// ==============================================
-model AiSession {
-  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId         String       @map("user_id") @db.Uuid
-  funnelId       String?      @map("funnel_id") @db.Uuid
-  sessionContext SessionContext? @map("session_context")
-  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  endedAt        DateTime?    @map("ended_at") @db.Timestamptz(6)
-
-  // 关联关系
-  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  funnel   Funnel?     @relation(fields: [funnelId], references: [id], onDelete: SetNull)
-  messages AiMessage[]
-
-  @@map("ai_sessions")
-  @@index([userId])
-  @@index([createdAt])
-  @@index([funnelId])
-  @@index([sessionContext])
-}
-
-// AI 会话上下文枚举
 enum SessionContext {
   invitation
   objection_handling
@@ -215,26 +684,6 @@ enum SessionContext {
   @@map("session_context")
 }
 
-// ==============================================
-// AI 消息模型
-// ==============================================
-model AiMessage {
-  id        String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  sessionId String      @map("session_id") @db.Uuid
-  role      MessageRole
-  content   String
-  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
-
-  // 关联关系
-  session AiSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
-  @@map("ai_messages")
-  @@index([sessionId])
-  @@index([createdAt])
-  @@index([role])
-}
-
-// 消息角色枚举
 enum MessageRole {
   user
   assistant
@@ -242,26 +691,22 @@ enum MessageRole {
   @@map("message_role")
 }
 
-// ==============================================
-// 审计日志模型（可选）
-// ==============================================
-model AuditLog {
-  id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tableName String     @map("table_name") @db.VarChar(50)
-  operation Operation
-  oldValues Json?      @map("old_values") @db.JsonB
-  newValues Json?      @map("new_values") @db.JsonB
-  userId    String?    @map("user_id") @db.Uuid
-  timestamp DateTime   @default(now()) @db.Timestamptz(6)
+enum AdminRole {
+  super_admin
+  admin
 
-  @@map("audit_log")
-  @@index([tableName])
-  @@index([timestamp])
-  @@index([userId])
-  @@index([operation])
+  @@map("admin_role")
 }
 
-// 审计操作枚举
+enum AiUsageType {
+  chat
+  analysis
+  recommendation
+  general
+
+  @@map("ai_usage_type")
+}
+
 enum Operation {
   INSERT
   UPDATE
@@ -270,49 +715,28 @@ enum Operation {
   @@map("audit_operation")
 }
 
-// ==============================================
-// 数据库性能优化建议
-// ==============================================
+enum FunnelInstanceStatus {
+  draft
+  active
+  in_progress
+  completed
+  paused
+  archived
 
-// 以下SQL需要在数据库中手动执行以获得最佳性能：
+  @@map("funnel_instance_status")
+}
 
-// 1. 创建复合索引用于常用查询
-// CREATE INDEX CONCURRENTLY idx_funnel_user_status_created ON funnels(user_id, status, created_at);
-// CREATE INDEX CONCURRENTLY idx_node_data_analytics ON node_data(node_id, week_start_date) INCLUDE (entry_count, converted_count, conversion_rate);
+enum CompanySize {
+  SIZE_1_10
+  SIZE_11_30
+  SIZE_31_100
 
-// 2. 创建部分索引（仅对活跃数据建索引）
-// CREATE INDEX CONCURRENTLY idx_users_active_email ON users(email) WHERE is_active = true;
-// CREATE INDEX CONCURRENTLY idx_funnels_active ON funnels(user_id, name) WHERE status = 'active';
+  @@map("company_size")
+}
 
-// 3. 创建GIN索引用于全文搜索
-// CREATE INDEX CONCURRENTLY idx_users_fulltext ON users USING gin((username || ' ' || coalesce(first_name, '') || ' ' || coalesce(last_name, '')) gin_trgm_ops);
-// CREATE INDEX CONCURRENTLY idx_funnels_tags ON funnels USING gin(tags);
+enum SalesModel {
+  TO_B
+  TO_C
 
-// 4. 创建聚合视图用于快速分析
-// CREATE MATERIALIZED VIEW funnel_analytics_summary AS 
-// SELECT 
-//   f.id as funnel_id,
-//   f.name as funnel_name,
-//   f.user_id,
-//   COUNT(n.id) as node_count,
-//   AVG(nd.conversion_rate) as avg_conversion_rate,
-//   SUM(nd.entry_count) as total_entries,
-//   SUM(nd.converted_count) as total_conversions,
-//   SUM(nd.revenue) as total_revenue,
-//   MAX(nd.created_at) as last_data_update
-// FROM funnels f
-// LEFT JOIN nodes n ON f.id = n.funnel_id
-// LEFT JOIN node_data nd ON n.id = nd.node_id
-// GROUP BY f.id, f.name, f.user_id;
-
-// CREATE UNIQUE INDEX idx_funnel_analytics_summary_pkey ON funnel_analytics_summary(funnel_id);
-
-// 5. 数据库配置建议
-// shared_preload_libraries = 'pg_stat_statements'
-// max_connections = 100
-// shared_buffers = 256MB
-// effective_cache_size = 1GB
-// work_mem = 4MB
-// maintenance_work_mem = 64MB
-// checkpoint_completion_target = 0.9
-// wal_buffers = 16MB
+  @@map("sales_model")
+}

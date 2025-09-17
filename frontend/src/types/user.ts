@@ -3,8 +3,9 @@ export interface User {
   email: string
   name: string
   avatar?: string
-  role: 'user' | 'admin'
+  role: 'owner' | 'admin' | 'member'
   permissions: string[]
+  organizationId?: string
   settings: UserSettings
   created_at: Date
   updated_at: Date
@@ -66,10 +67,22 @@ export interface AuthResponse {
   message?: string
   data: {
     user: User
+    organization?: Organization
     access_token: string
     refresh_token: string
     expires_in: number
   }
+}
+
+export interface Organization {
+  id: string
+  name: string
+  slug: string
+  description?: string
+  planType: string
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export interface RefreshTokenResponse {

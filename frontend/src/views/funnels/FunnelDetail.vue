@@ -1,14 +1,14 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <div class="bg-white shadow">
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div class="bg-white dark:bg-gray-800 shadow">
       <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between">
           <div>
-            <router-link to="/funnels" class="text-indigo-600 hover:text-indigo-500 mb-2 inline-block">
+            <router-link to="/funnels" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 mb-2 inline-block">
               ← 返回漏斗列表
             </router-link>
-            <h1 class="text-3xl font-bold text-gray-900">{{ funnel.name }}</h1>
-            <p class="text-gray-600 mt-2">{{ funnel.description }}</p>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ funnel.name }}</h1>
+            <p class="text-gray-600 dark:text-gray-300 mt-2">{{ funnel.description }}</p>
           </div>
           <div class="flex space-x-3">
             <router-link
@@ -714,26 +714,9 @@ const formatAnalysisTime = (date) => {
 
 onMounted(async () => {
   const funnelId = route.params.id as string
-  console.log('Loading funnel detail for ID:', funnelId)
+  console.log('Redirecting from funnel detail to data entry for ID:', funnelId)
   
-  try {
-    const result = await fetchFunnelById(funnelId)
-    if (result) {
-      funnelData.value = result
-      console.log('Funnel detail loaded:', result)
-      console.log('Canvas data:', result.canvasData)
-      console.log('Nodes:', result.canvasData?.nodes)
-      console.log('Node data samples:', result.canvasData?.nodes?.map(node => ({
-        label: node.label,
-        data: node.data
-      })))
-    } else {
-      console.error('No funnel found with ID:', funnelId)
-      // 可以选择跳转回漏斗列表页面
-      // router.push('/funnels')
-    }
-  } catch (err) {
-    console.error('Failed to load funnel detail:', err)
-  }
+  // Redirect to funnel data entry page
+  router.replace(`/metrics/funnel?funnelId=${funnelId}`)
 })
 </script>

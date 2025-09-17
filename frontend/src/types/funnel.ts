@@ -1,9 +1,12 @@
+export type DataPeriod = 'DAILY' | 'WEEKLY' | 'MONTHLY'
+
 export interface Funnel {
   id: string
   name: string
   description?: string
   user_id: string
   status: 'active' | 'archived'
+  dataPeriod?: DataPeriod
   nodes: FunnelNode[]
   edges: FunnelEdge[]
   settings: FunnelSettings
@@ -66,6 +69,7 @@ export interface NodeData {
   description?: string
   config: NodeConfig
   validation?: ValidationRule[]
+  // Structure-only mode: no data values stored in template
 }
 
 export interface EdgeData {
@@ -198,18 +202,22 @@ export interface EdgeAnalytics {
 export interface CreateFunnelRequest {
   name: string
   description?: string
+  dataPeriod?: DataPeriod
   nodes?: FunnelNode[]
   edges?: FunnelEdge[]
   settings?: Partial<FunnelSettings>
+  canvasData?: any
 }
 
 export interface UpdateFunnelRequest {
   name?: string
   description?: string
   status?: Funnel['status']
+  dataPeriod?: DataPeriod
   nodes?: FunnelNode[]
   edges?: FunnelEdge[]
   settings?: Partial<FunnelSettings>
+  canvasData?: any
 }
 
 export interface DuplicateFunnelRequest {
@@ -241,5 +249,364 @@ export interface FunnelFilters {
 
 export interface FunnelSort {
   field: 'name' | 'created_at' | 'updated_at' | 'conversion_rate'
+  order: 'asc' | 'desc'
+}
+
+// Structure-focused types for the new funnel builder
+export interface FunnelTemplate {
+  id: string
+  name: string
+  description?: string
+  user_id: string
+  structure: FunnelStructure
+  metadata: TemplateMetadata
+  created_at: Date
+  updated_at: Date
+}
+
+export interface FunnelStructure {
+  nodes: StructureNode[]
+  connections: StructureConnection[]
+  layout?: CanvasLayout
+}
+
+export interface StructureNode {
+  id: string
+  type: NodeType
+  label: string
+  description?: string
+  position: Position
+  style?: NodeStyle
+  metadata?: {
+    category?: string
+    tags?: string[]
+    requirements?: string[]
+  }
+}
+
+export interface StructureConnection {
+  id: string
+  from: string
+  to: string
+  fromAnchor: 'top' | 'right' | 'bottom' | 'left'
+  toAnchor: 'top' | 'right' | 'bottom' | 'left'
+  type: 'default' | 'conditional' | 'fallback' | 'parallel'
+  label?: string
+  description?: string
+}
+
+export interface CanvasLayout {
+  zoom: number
+  panX: number
+  panY: number
+  gridEnabled?: boolean
+  snapToGrid?: boolean
+}
+
+export interface TemplateMetadata {
+  version: string
+  author?: string
+  category?: 'marketing' | 'sales' | 'support' | 'product' | 'custom'
+  complexity?: 'simple' | 'medium' | 'complex'
+  estimatedSetupTime?: string
+  requiredIntegrations?: string[]
+  tags?: string[]
+  notes?: string
+}
+
+export interface CreateTemplateRequest {
+  name: string
+  description?: string
+  structure: FunnelStructure
+  metadata?: Partial<TemplateMetadata>
+}
+
+export interface UpdateTemplateRequest {
+  name?: string
+  description?: string
+  structure?: FunnelStructure
+  metadata?: Partial<TemplateMetadata>
+}
+
+// Analysis types
+export interface AnalysisRequest {
+  funnelId: string
+  timeRange: {
+    start: Date
+    end: Date
+  }
+  includeComparison?: boolean
+  includeRecommendations?: boolean
+}
+
+export interface AnalysisResponse {
+  funnelId: string
+  diagnostics: DiagnosticResult[]
+  recommendations: GeneratedRecommendation[]
+  peerComparison?: PeerComparisonResult
+  improvementPotential: ImprovementPotential
+  metricData: FunnelMetricData
+  generatedAt: Date
+}
+
+export interface DiagnosticResult {
+  id: string
+  category: 'performance' | 'conversion' | 'user_experience' | 'technical'
+  severity: 'low' | 'medium' | 'high' | 'critical'
+  title: string
+  description: string
+  metric: string
+  currentValue: number
+  benchmarkValue?: number
+  impact: string
+  recommendations: string[]
+  dataPoints: Array<{
+    date: Date
+    value: number
+  }>
+  // Additional properties for DiagnosticBar component
+  healthScore: number
+  overallGrade: string
+  stageGrades: Record<string, {
+    score: number
+    grade: string
+    label: string
+    status: string
+  }>
+  weakPoints: Array<{
+    id: string
+    title: string
+    description: string
+    severity: 'low' | 'medium' | 'high' | 'critical'
+    impact: string
+    recommendations: string[]
+  }>
+  improvementPriorities: Array<{
+    id: string
+    title: string
+    description: string
+    priority: number
+    estimatedImpact: string
+    difficulty: 'easy' | 'medium' | 'hard'
+    timeframe: string
+  }>
+}
+
+export interface GeneratedRecommendation {
+  id: string
+  title: string
+  description: string
+  category: 'traffic_acquisition' | 'landing_page_optimization' | 'user_experience_improvement' | 'content_optimization' | 'technical_performance' | 'personalization' | 'conversion_path_optimization' | 'customer_service_improvement' | 'pricing_strategy_adjustment'
+  priority: 'high' | 'medium' | 'low'
+  difficulty: 'easy' | 'medium' | 'hard'
+  implementationTime: string
+  expectedImpact: string
+  roiEstimate: number
+  actionItems: string[]
+  resources: string[]
+  successMetrics: string[]
+  applicableStages: string[]
+  customizedContent?: {
+    currentPerformance?: {
+      overall: number
+    }
+    targetImprovement?: {
+      overall?: number
+    }
+  }
+}
+
+export interface PeerComparisonResult {
+  industry: string
+  segment: string
+  metricComparisons: Array<{
+    metric: string
+    yourValue: number
+    industryAverage: number
+    topPercentile: number
+    percentile: number
+  }>
+  ranking: {
+    overall: number
+    category: string
+  }
+}
+
+export interface ImprovementPotential {
+  overall: {
+    currentRate: number
+    potentialRate: number
+    improvementPercentage: number
+  }
+  byStage: Array<{
+    stage: string
+    currentRate: number
+    potentialRate: number
+    improvementPercentage: number
+    priority: 'high' | 'medium' | 'low'
+  }>
+}
+
+export interface FunnelMetricData {
+  conversionRates: Array<{
+    stage: string
+    rate: number
+    count: number
+  }>
+  timeSeriesData: Array<{
+    date: Date
+    stage: string
+    value: number
+  }>
+  demographics: Array<{
+    segment: string
+    conversionRate: number
+    volume: number
+  }>
+}
+
+// Funnel Instance Types
+export type FunnelInstanceStatus = 'draft' | 'active' | 'in_progress' | 'completed' | 'paused' | 'archived'
+
+export interface FunnelInstance {
+  id: string
+  name: string
+  description?: string
+  funnelTemplateId: string
+  userId: string
+  organizationId?: string
+  status: FunnelInstanceStatus
+  periodStartDate?: Date
+  periodEndDate?: Date
+  instanceData?: any
+  tags: string[]
+  notes?: string
+  isActive: boolean
+  completedAt?: Date
+  createdAt: Date
+  updatedAt: Date
+  // Relations
+  funnelTemplate?: {
+    id: string
+    name: string
+    description?: string
+  }
+  user?: {
+    id: string
+    username: string
+    email: string
+  }
+  instanceMetrics?: FunnelInstanceMetrics[]
+}
+
+export interface FunnelInstanceMetrics {
+  id: string
+  instanceId: string
+  periodType: 'weekly' | 'monthly'
+  periodStartDate: Date
+  periodEndDate: Date
+  totalEntries: number
+  totalConversions: number
+  overallConversionRate?: number
+  totalRevenue?: number
+  totalCost?: number
+  roi?: number
+  avgTimeSpent?: number
+  bounceRate?: number
+  notes?: string
+  customMetrics?: any
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface FunnelInstanceListItem {
+  id: string
+  name: string
+  description?: string
+  funnelTemplateId: string
+  status: FunnelInstanceStatus
+  periodStartDate?: Date
+  periodEndDate?: Date
+  tags: string[]
+  isActive: boolean
+  completedAt?: Date
+  createdAt: Date
+  updatedAt: Date
+  funnelTemplate?: {
+    name: string
+  }
+  metricsCount: number
+  latestMetrics?: {
+    overallConversionRate?: number
+    totalRevenue?: number
+  }
+}
+
+export interface CreateFunnelInstanceRequest {
+  name: string
+  description?: string
+  funnelTemplateId: string
+  periodStartDate?: Date
+  periodEndDate?: Date
+  tags?: string[]
+  notes?: string
+}
+
+export interface UpdateFunnelInstanceRequest {
+  name?: string
+  description?: string
+  status?: FunnelInstanceStatus
+  periodStartDate?: Date
+  periodEndDate?: Date
+  instanceData?: any
+  tags?: string[]
+  notes?: string
+  isActive?: boolean
+}
+
+export interface InstanceUsageStats {
+  templateId: string
+  templateName: string
+  totalInstances: number
+  activeInstances: number
+  completedInstances: number
+  draftInstances: number
+  averageConversionRate?: number
+  totalRevenue?: number
+  lastUsed?: Date
+}
+
+export interface InstanceComparison {
+  instanceId: string
+  instanceName: string
+  metrics: FunnelInstanceMetrics[]
+}
+
+export interface BulkInstanceOperationRequest {
+  instanceIds: string[]
+  operation: 'archive' | 'activate' | 'pause' | 'delete'
+}
+
+export interface TemplateUsageTracking {
+  templateId: string
+  usageCount: number
+  lastUsedAt: Date
+  popularTags: string[]
+  averageCompletionTime?: number
+}
+
+export interface InstanceFilters {
+  status?: FunnelInstanceStatus[]
+  templateId?: string
+  search?: string
+  tags?: string[]
+  createdAfter?: Date
+  createdBefore?: Date
+  periodStartAfter?: Date
+  periodStartBefore?: Date
+}
+
+export interface InstanceSort {
+  field: 'name' | 'status' | 'createdAt' | 'updatedAt' | 'periodStartDate'
   order: 'asc' | 'desc'
 }

@@ -1,10 +1,16 @@
 import { User } from '@prisma/client';
+import { UserRole } from './organization';
+
+export { User };
 
 // 用户创建输入类型
 export interface CreateUserInput {
   username: string;
-  email: string;
+  email?: string;
+  phone?: string;
   password: string;
+  organizationId?: string;
+  role?: UserRole;
 }
 
 // 用户更新输入类型
@@ -12,6 +18,11 @@ export interface UpdateUserInput {
   username?: string;
   email?: string;
   password?: string;
+  firstName?: string;
+  lastName?: string;
+  avatar?: string;
+  organizationId?: string;
+  role?: UserRole;
   isActive?: boolean;
 }
 
@@ -22,14 +33,16 @@ export type UserResponse = Omit<User, 'passwordHash'> & {
 
 // 登录输入类型
 export interface LoginInput {
-  email: string;
+  email?: string;
+  phone?: string;
   password: string;
 }
 
 // 注册输入类型
 export interface RegisterInput {
   name: string;
-  email: string;
+  phone: string;
+  verification_code: string;
   password: string;
   password_confirmation: string;
   terms_accepted: boolean;
